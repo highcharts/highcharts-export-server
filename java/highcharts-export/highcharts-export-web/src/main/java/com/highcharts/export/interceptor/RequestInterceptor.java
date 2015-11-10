@@ -23,7 +23,8 @@ public class RequestInterceptor extends HandlerInterceptorAdapter {
 	private static final Logger logger = Logger.getLogger(RequestInterceptor.class.getName());
 	private static final String lineSeparator = System.getProperty("line.separator");
 
-	@Autowired MonitorService monitor;
+	@Autowired 
+    private MonitorService monitor;
 
 
 	private String extractPostRequestBody(HttpServletRequest request) throws IOException {
