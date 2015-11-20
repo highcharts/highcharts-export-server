@@ -1,28 +1,22 @@
 package com.highcharts.export.pool;
 
-import java.nio.file.*;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.annotation.PostConstruct;
-
-import org.apache.log4j.Logger;
-
 import com.highcharts.export.server.Server;
 import com.highcharts.export.server.ServerState;
 import com.highcharts.export.util.TempDir;
+import org.apache.commons.io.IOUtils;
+import org.apache.log4j.Logger;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import javax.annotation.PostConstruct;
+import java.io.*;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.TreeMap;
-
-import org.apache.commons.io.IOUtils;
-import org.springframework.core.io.ClassPathResource;
 
 public class ServerObjectFactory implements ObjectFactory<Server> {
 
@@ -194,44 +188,25 @@ public class ServerObjectFactory implements ObjectFactory<Server> {
 		
 		URL u = getClass().getProtectionDomain().getCodeSource().getLocation();
 		URLClassLoader jarLoader = new URLClassLoader(new URL[]{u}, Thread.currentThread().getContextClassLoader());
-		String filenames[] = new String[] {"highcharts-convert.js",
-				"jquery.1.9.1.min.js",
-				"highcharts.js",
-				"highstock.js",
-				"highcharts-more.js",
-				"data.js",
-				"drilldown.js",
-				"funnel.js",
-				"heatmap.js",
-				"highcharts-3d.js",
-				"no-data-to-display.js",
-				"solid-gauge.js",
-				"map.js",
-				"broken-axis.js",
-				"treemap.js"};
-		
-		for (String filename : filenames) {
-		
-			ClassPathResource resource = new ClassPathResource("phantomjs/" + filename, jarLoader);
-			if (resource.exists()) {
-				Path path = Paths.get(TempDir.getPhantomJsDir().toString(), filename);
-				File file;
-				try {
-					file = Files.createFile(path).toFile();
-					file.deleteOnExit();
-					try (InputStream in = resource.getInputStream();
-					     OutputStream out=new FileOutputStream(file))
-			        {
-					    IOUtils.copy(in, out);
-			        }
-				} catch (IOException ioex) {
-					logger.error("Error while setting up phantomjs environment: " + ioex.getMessage());
+		PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver(jarLoader);
+		try {
+			Resource[] resources = resolver.getResources("classpath*:/phantomjs/*.js");
+			for (Resource resource : resources) {
+				logger.info("Copying " + resource.getFilename() + " to " + TempDir.getPhantomJsDir());
+				Path path = Paths.get(TempDir.getPhantomJsDir().toString(), resource.getFilename());
+				File f = Files.createFile(path).toFile();
+				f.deleteOnExit();
+
+				try (InputStream in = resource.getInputStream();
+				     OutputStream out=new FileOutputStream(f))
+				{
+					IOUtils.copy(in, out);
 				}
-			} else {
-				logger.debug("Copy javascript file to temp folder, resource doesn't exist: " + filename);
 			}
+		} catch (IOException ioex) {
+			logger.error("Error while setting up phantomjs environment: " + ioex.getMessage());
+			ioex.printStackTrace();
 		}
-		
 	}
 
 
