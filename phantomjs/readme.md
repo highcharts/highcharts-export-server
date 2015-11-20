@@ -1,6 +1,16 @@
 #The Highcharts image convert script#
 The file `highcharts-convert.js` is a [PhantomJS](http://phantomjs.org/) script to convert SVG or Highcharts JSON options objects to chart images. It is ideal for batch processing Highcharts configurations for attaching to emails or reports. It is also used in the featured (Java based) export server. An online demo with a GUI can be viewed at [export.highcharts.com/demo](http://export.highcharts.com/demo).
 
+#Installation#
+Place here the Highcharts javascript files needed for server-side chart generation.
+For example highcharts.js or highstock.js and don't forget modules like gauge.js or funnel.js if you want to support gauges, funnel charts, etc.
+
+##Installation of PhantomJS
+You need to install PhantomJS, a headless browser based on WebKit.
+For installation details, see http://phantomjs.org/download.html
+
+**note** 
+The Highcharts files are subjected to the Highcharts License.
 #Example usage#
 ####Command line
 	phantomjs highcharts-convert.js -infile options1.json -outfile chart1.png -scale 2.5 -width 300 -constr Chart -callback callback.js
@@ -45,6 +55,3 @@ You can change the host and port to your needs. The server listens only to a POS
 Example of an POST request
 
 	"{"infile":"{xAxis: {categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']},series: [{data: [29.9, 71.5, 106.4, 129.2, 144.0, 176.0, 135.6, 148.5, 216.4, 194.1, 95.6, 54.4]}]};","callback":"function(chart) {chart.renderer.arc(200, 150, 100, 50, -Math.PI, 0).attr({fill : '#FCFFC5',stroke : 'black','stroke-width' : 1}).add();}","constr":"Chart"}"
-
-#Installation of PhantomJS#
-See http://phantomjs.org/download.html
