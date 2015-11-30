@@ -289,7 +289,7 @@
 			try {
 				if (outType.toLowerCase() === 'svg') {
 					// output svg
-					svg = svg.html.replace(/<svg /, '<svg xmlns:xlink="http://www.w3.org/1999/xlink" ').replace(/ href=/g, ' xlink:href=').replace(/<\/svg>.*?$/, '</svg>');
+					svg = svg.html.replace(/<svg (?!xmlns:xlink)/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink" ').replace(/ href=/g, ' xlink:href=').replace(/<\/svg>.*?$/, '</svg>');
 					// add xml doc type
 					svg = SVG_DOCTYPE + svg;
 
