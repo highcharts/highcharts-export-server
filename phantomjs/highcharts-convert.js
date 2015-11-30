@@ -189,6 +189,16 @@
 			/* params.width has a higher precedence over scaling, to not break backover compatibility */
 			page.zoomFactor = params.scale && params.width == undefined ? zoom * params.scale : zoom;
 
+			// Set scale on foreignObject body. page.zoomFactor does not work on HTML inside SVG foreignObject on webkit currently.
+			// See Highcharts issue #4648
+			page.evaluate(function (zoom) {
+				var foreignObjectElem = document.getElementsByTagName('foreignObject')[0],
+					bodyElem = foreignObjectElem && foreignObjectElem.getElementsByTagName('body')[0];				
+				if (bodyElem) {
+					bodyElem.setAttribute('style', '-webkit-transform: scale(' + zoom + '); -webkit-transform-origin: 0 0 !important');
+				}
+			}, page.zoomFactor);
+
 			clipwidth = svg.width * page.zoomFactor;
 			clipheight = svg.height * page.zoomFactor;
 
@@ -325,10 +335,23 @@
 		};
 
 		loadChart = function (input, outputType) {
-			var nodeIter, nodes, elem, opacity, svgElem, imgs, imgUrls, imgIndex;
+			var nodeIter, nodes, elem, opacity, svgElem, imgs, imgUrls, imgIndex, foreignObjectElem, bodyElem;
 
 			document.body.style.margin = '0px';
 			document.body.innerHTML = input;
+
+			// Wrap contents of foreignObject in a body tag if the body tag has been removed. Not sure why this happens,
+			// but when assigning to innerHTML, the body tag seems to be stripped off.
+			foreignObjectElem = document.getElementsByTagName('foreignObject')[0];
+			if (foreignObjectElem && !foreignObjectElem.getElementsByTagName('body').length) {
+				bodyElem = document.createElement('body');
+				bodyElem.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+				while (foreignObjectElem.firstChild) {
+    				bodyElem.appendChild(foreignObjectElem.firstChild.cloneNode(true));
+    				foreignObjectElem.removeChild(foreignObjectElem.firstChild);
+				}
+				foreignObjectElem.appendChild(bodyElem);
+			}
 
 			if (outputType === 'jpeg') {
 				document.body.style.backgroundColor = 'white';
