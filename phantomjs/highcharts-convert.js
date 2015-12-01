@@ -73,7 +73,8 @@
 		args,
 		pick,
 		SVG_DOCTYPE = '<?xml version=\"1.0" standalone=\"no\"?><!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">',
-		dpiCorrection = 1.4,
+		dpiCorrection = 1.0, // Correction factor for DPI scaling. Use if PDF export does not match page size (issue #4764).
+		// dpiCorrection = 72 / 96, // DPI correction setting for Windows
 		system = require('system'),
 		fs = require('fs'),
 		serverMode = false;
@@ -219,8 +220,8 @@
 				page.evaluate(function(zoom) {
 					document.getElementsByTagName('body')[0].style.zoom = zoom;
 				}, page.zoomFactor);
-
-				page.paperSize = { width: clipwidth, height: clipheight};
+				
+				page.paperSize = { width: clipwidth * dpiCorrection, height: clipheight * dpiCorrection};
 			}
 		};
 
