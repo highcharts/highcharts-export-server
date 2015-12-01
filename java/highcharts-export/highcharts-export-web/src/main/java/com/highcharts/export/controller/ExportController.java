@@ -36,6 +36,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeoutException;
 
@@ -214,7 +217,14 @@ public class ExportController extends HttpServlet {
 
 		return new HttpEntity<byte[]>(stream.toByteArray(), headers);
 	}
-	
+
+	@RequestMapping(value = "/health", method = RequestMethod.GET)
+	public @ResponseBody
+	Map<String,String> checkHealth() {
+		Map health = new HashMap<>();
+		health.put("Ok", new Date().toString());
+		return health;
+	}
 	/*
 	 * INSTANCE METHODS
 	 */
