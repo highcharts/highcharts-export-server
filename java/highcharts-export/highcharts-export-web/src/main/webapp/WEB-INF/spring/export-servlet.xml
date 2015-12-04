@@ -26,7 +26,7 @@
 
 	<mvc:interceptors>
 		<mvc:interceptor>
-			<mvc:mapping path="/" />
+			<mvc:mapping path="/**" />
 			<bean class="com.highcharts.export.interceptor.RequestInterceptor" />
 		</mvc:interceptor>
 	</mvc:interceptors>
