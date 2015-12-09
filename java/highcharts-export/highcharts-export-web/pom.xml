@@ -96,7 +96,7 @@
 						<contextPath>/export</contextPath>
 					</webApp>
 					<!-- use war with command mvn jetty:run-exploded -->
-					<war>${basedir}/target/highcharts-cloud-editor-web</war>
+					<war>${basedir}/target/</war>
 					<reload>manual</reload>
 					<systemProperties>
 						<systemProperty>
