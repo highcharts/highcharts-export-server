@@ -362,7 +362,6 @@ public class ExportController extends HttpServlet {
 	public ModelAndView handleZeroRequestParameterException(Exception ex, HttpServletResponse response) {
 		ModelAndView modelAndView = new ModelAndView();
 		modelAndView.setViewName("demo");
-		response.setStatus(302);
 		return modelAndView;
 	}
 
