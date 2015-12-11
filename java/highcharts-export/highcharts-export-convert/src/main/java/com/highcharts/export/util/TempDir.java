@@ -4,6 +4,7 @@
  */
 package com.highcharts.export.util;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,6 +38,13 @@ public class TempDir {
 		
 		phantomJsDir = Files.createDirectory(Paths.get(tmpDir.toString(), "phantomjs"));
 		phantomJsDir.toFile().deleteOnExit();
+		
+		File dir = phantomJsDir.toFile();
+		if (dir != null) {
+			for (File file : dir.listFiles()) {
+				file.delete();
+			}
+		}
 
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
