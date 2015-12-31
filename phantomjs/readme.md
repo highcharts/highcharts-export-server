@@ -55,3 +55,21 @@ You can change the host and port to your needs. The server listens only to a POS
 Example of an POST request
 
 	"{"infile":"{xAxis: {categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']},series: [{data: [29.9, 71.5, 106.4, 129.2, 144.0, 176.0, 135.6, 148.5, 216.4, 194.1, 95.6, 54.4]}]};","callback":"function(chart) {chart.renderer.arc(200, 150, 100, 50, -Math.PI, 0).attr({fill : '#FCFFC5',stroke : 'black','stroke-width' : 1}).add();}","constr":"Chart"}"
+
+Example node.js usage
+
+	var request = require("request");
+	var expressRoute = function (req, res) {
+		var infile = {
+			xAxis: { categories: ["Jan", "Feb", "Mar"] },
+			series: [{ data: [29.9, 71.5, 106.4] }]
+		};
+		var query = { infile: JSON.stringify(infile) };
+
+		request.post("http://127.0.0.1:3003", { form: query }, function (err, result) {
+			var img = new Buffer(result.body, "base64");
+			res.setHeader("Content-type", "image/png");
+			res.setHeader("Content-length", img.length);
+			res.send(img);
+		});
+	};

@@ -597,6 +597,14 @@
 				var jsonStr = request.postRaw || request.post,
 					params,
 					msg;
+				if (typeof request.post === 'object') {
+					try {
+						params = JSON.parse(jsonStr);
+					} catch (e) {
+						jsonStr = JSON.stringify(request.post);
+					}
+				}
+
 				try {
 					params = JSON.parse(jsonStr);
 					if (params.status) {
