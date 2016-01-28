@@ -1,1 +1,22 @@
 phantomjs/highcharts.js
+
+### OSX ###
+.DS_Store
+
+### Intellij ###
+*.iml
+.idea/
+
+### Java ###
+*.class
+
+### Eclipse ###
+.project
+.classpath
+.settings/
+
+### Maven ###
+target/
+
+### Sublime Text 2 ###
+*sublime*

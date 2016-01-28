@@ -40,7 +40,7 @@ public class Server {
 		this.maxTimeout = maxTimeout;
 
 		try {
-			ArrayList<String> commands = new ArrayList<String>();
+			ArrayList<String> commands = new ArrayList<>();
 			commands.add(exec);
 			commands.add(script);
 			commands.add("-host");

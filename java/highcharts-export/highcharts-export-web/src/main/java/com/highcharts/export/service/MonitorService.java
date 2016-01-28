@@ -1,11 +1,7 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.highcharts.export.service;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 /**
@@ -18,7 +14,7 @@ public class MonitorService {
 	private AtomicInteger count = new AtomicInteger(0);
 	private AtomicInteger error = new AtomicInteger(0);
 	private long start = System.currentTimeMillis();
-	protected static final Logger logger = Logger.getLogger("statistics");
+	protected static final Logger logger = Logger.getLogger(MonitorService.class.getName());
 
 	public int add() {
 		return count.incrementAndGet();
