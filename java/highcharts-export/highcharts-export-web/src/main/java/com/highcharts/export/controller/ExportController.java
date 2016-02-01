@@ -48,7 +48,7 @@ public class ExportController extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	private static final Float MAX_WIDTH = 2000.0F;
 	private static final Float MAX_SCALE = 4.0F;
-	protected static Logger logger = Logger.getLogger("exporter");
+	protected static Logger logger = Logger.getLogger(ExportController.class.getName());
 
 	@Autowired
 	private SVGConverter converter;
@@ -161,7 +161,7 @@ public class ExportController extends HttpServlet {
 
 		headers.setContentLength(stream.size());
 
-		return new HttpEntity<byte[]>(stream.toByteArray(), headers);
+		return new HttpEntity<>(stream.toByteArray(), headers);
 	}
 
 	@RequestMapping(value = "/files/{name}.{ext}", method = RequestMethod.GET)
@@ -176,7 +176,7 @@ public class ExportController extends HttpServlet {
 		headers.add("Content-Type", mime.getType() + "; charset=utf-8");
 		headers.setContentLength(stream.size());
 
-		return new HttpEntity<byte[]>(stream.toByteArray(), headers);
+		return new HttpEntity<>(stream.toByteArray(), headers);
 	}
 
 	@RequestMapping(value="/json/{name}.{ext}", method = RequestMethod.POST)
@@ -190,7 +190,9 @@ public class ExportController extends HttpServlet {
 		String json = requestBody;
 		MimeType mime = getMime(extension);
 
-		if (json.indexOf("outfile") > -1) throw new ServletException("Detected illegal \'outfile\' property in json");
+		if (json.contains("outfile")) {
+			throw new ServletException("Detected illegal \'outfile\' property in json");
+		}
 
 		// add outfile parameter to the json with a simple string replace
 		if (MimeType.PDF.equals(mime)) {
@@ -215,13 +217,13 @@ public class ExportController extends HttpServlet {
 				   "attachment; filename=" + name + "." + extension);
 		headers.setContentLength(stream.size());
 
-		return new HttpEntity<byte[]>(stream.toByteArray(), headers);
+		return new HttpEntity<>(stream.toByteArray(), headers);
 	}
 
 	@RequestMapping(value = "/health", method = RequestMethod.GET)
 	public @ResponseBody
 	Map<String,String> checkHealth() {
-		Map health = new HashMap<>();
+		Map<String, String> health = new HashMap<>();
 		health.put("Ok", new Date().toString());
 		return health;
 	}

@@ -8,10 +8,9 @@ import com.highcharts.export.service.MonitorService;
 import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
@@ -66,27 +65,23 @@ public class RequestInterceptor extends HandlerInterceptorAdapter {
 
 		if (httpStatus == 500) {
 			monitor.addError();
-            logger.log(Level.INFO, "Time={0} :: Time taken(ms) {1}{3} :: RequestMethod {5} :: Status {6} :: Referer={2}{3} :: Request parameters {4}", 
-                new Object[]{ new Date().toString(), //0
-                    System.currentTimeMillis() - startTime, //1
-                    request.getHeader("referer"), //2
-                    lineSeparator, //3
-                    extractPostRequestBody(request), //4
-                    request.getMethod(), //5
-                    response.getStatus()}); //6
-                    
+            logger.info(String.format("[Time=%s :: Time taken(ms)=%d :: RequestMethod=%s :: Status=%d :: Referer=%s :: Request parameters=%s]",
+					new Date().toString(),
+					(System.currentTimeMillis() - startTime),
+					request.getMethod(),
+					response.getStatus(),
+					request.getHeader("referer"), // <-- intentional misspelling (http legacy)
+					extractPostRequestBody(request)));
 		} else {
-            logger.log(Level.INFO, "Time={0} :: Time taken(ms) {1}{3} :: RequestMethod {4} :: Status {5} :: Referer={2}", 
-                new Object[]{ new Date().toString(), //0
-                    System.currentTimeMillis() - startTime, //1
-                    request.getHeader("referer"), //2
-                    lineSeparator, //3
-                    request.getMethod(), //4
-                    response.getStatus()}); //5
+			logger.info(String.format("[Time=%s :: Time taken(ms)=%d :: RequestMethod=%s :: Status=%d :: Referer=%s]",
+					new Date().toString(),
+					(System.currentTimeMillis() - startTime),
+					request.getMethod(),
+					response.getStatus(),
+					request.getHeader("referer")));
         }
-        
 
-        logger.log(Level.INFO, monitor.report());
+        logger.info(monitor.report());
     }
 
 }
