@@ -592,7 +592,7 @@
 	startServer = function (host, port) {
 		var server = require('webserver').create();
 
-		server.listen(host + ':' + port,
+		server.listen(host ? host + ':' + port : parseInt(port),
 			function (request, response) {
 				var jsonStr = request.postRaw || request.post,
 					params,
@@ -644,7 +644,7 @@
 		}
 	}
 
-	if (args.host !== undefined && args.port !== undefined) {
+	if (args.port !== undefined) {
 		startServer(args.host, args.port);
 	} else {
 		// presume commandline usage
