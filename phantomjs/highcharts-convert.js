@@ -170,6 +170,23 @@
 			console.log(msg);
 		};
 
+		page.onError = function(msg, trace) {
+			var msgStack = ['ERROR: ' + msg];
+
+			  if (trace && trace.length) {
+			    msgStack.push('TRACE:');
+			    trace.forEach(function(t) {
+			      msgStack.push(' -> ' + t.file + ': ' + t.line + (t.function ? ' (in function "' + t.function +'")' : ''));
+			    });
+			  }
+
+			  console.error(msgStack.join('\n'));
+
+			  if (exitCallback !== null) {
+				  exitCallback(msg);
+			  }
+		}
+
 		/* scale and clip the page */
 		scaleAndClipPage = function (svg) {
 			/*	param: svg: The scg configuration object
@@ -590,7 +607,18 @@
 	};
 
 	startServer = function (host, port) {
-		var server = require('webserver').create();
+		var server = require('webserver').create(),
+			onError = function (msg, e){
+				msg = "Failed rendering: \n"
+				if (e) {
+					 msg += e;
+				}
+				response.statusCode = 500;
+				response.setHeader('Content-Type', 'text/plain');
+				response.setHeader('Content-Length', msg.length);
+				response.write(msg);
+				response.close();
+			};
 
 		server.listen(host ? host + ':' + port : parseInt(port),
 			function (request, response) {
@@ -609,15 +637,10 @@
 							response.statusCode = 200;
 							response.write(result);
 							response.close();
-						});
+						}, onError);
 					}
 				} catch (e) {
-					msg = "Failed rendering: \n" + e;
-					response.statusCode = 500;
-					response.setHeader('Content-Type', 'text/plain');
-					response.setHeader('Content-Length', msg.length);
-					response.write(msg);
-					response.close();
+					onError("Failed rendering chart")
 				}
 			}); // end server.listen
 
