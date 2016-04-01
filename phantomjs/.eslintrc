@@ -1,0 +1,24 @@
+extends:
+    "./eslint-default-config.yml"
+
+rules:
+    camelcase: [2, {"properties": "always"}]
+    comma-dangle: [2, "never"]
+    dot-location: [2, "property"]
+    indent: [2, "tab"]
+    no-alert: 2
+    no-console: 0
+    no-debugger: 2
+    no-else-return: 2
+    object-curly-spacing: [2, "always"]
+    operator-linebreak: [2, "after"]
+    space-before-function-paren: [2, {"anonymous": "always", "named": "never"}] # JSLint style
+    quotes: [2, "single"]
+
+    # Temporary to adapt the terrain to the map:
+    consistent-return: 0
+    no-mixed-requires: 0
+    no-shadow: 0
+    no-undefined: 0
+    require-jsdoc: 0
+    strict: 0
