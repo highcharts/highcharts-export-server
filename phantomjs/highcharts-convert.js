@@ -24,7 +24,6 @@
 
 			files: {
 				highcharts: {
-					JQUERY: 'jquery.1.9.1.min.js',
 					HIGHCHARTS: 'highcharts.js',
 					HIGHCHARTS_MORE: 'highcharts-more.js',
 					HIGHCHARTS_DATA: 'data.js',
@@ -40,7 +39,6 @@
 					BROKEN_AXIS: 'broken-axis.js'
 				},
 				highstock: {
-					JQUERY: 'jquery.1.9.1.min.js',
 					HIGHCHARTS: 'highstock.js',
 					HIGHCHARTS_MORE: 'highcharts-more.js',
 					HIGHCHARTS_DATA: 'data.js',
@@ -56,7 +54,6 @@
 					BROKEN_AXIS: 'broken-axis.js'
 				},
 				highmaps: {
-					JQUERY: 'jquery.1.9.1.min.js',
 					HIGHCHARTS: 'highmaps.js',
 					HIGHCHARTS_DATA: 'data.js',
 					HIGHCHARTS_DRILLDOWN: 'drilldown.js',
@@ -401,15 +398,19 @@
 
 		createChart = function (constr, input, globalOptionsArg, dataOptionsArg, customCodeArg, outputType) {
 
-			var $container, chart, nodes, nodeIter, elem, opacity, imgIndex, imgs, imgUrls;
+			var container, chart, nodes, nodeIter, elem, opacity, imgIndex, imgs, imgUrls;
 
 			// dynamic script insertion
-			function loadScript(varStr, codeStr) {
-				var $script = $('<script>').attr('type', 'text/javascript');
-				$script.html('var ' + varStr + ' = ' + codeStr);
-				document.getElementsByTagName('head')[0].appendChild($script[0]);
-				if (window[varStr] !== undefined) {
-					console.log('Highcharts.' + varStr + '.parsed');
+			function loadScript(varName, code) {
+
+				var elem = document.createElement('script'),
+					body = 'var ' + varName + ' = ' + code;
+				elem.type = "text/javascript";
+				elem.appendChild(document.createTextNode(body));
+				document.getElementsByTagName('head')[0].appendChild(elem);
+
+				if (window[varName] !== undefined) {
+					console.log('Highcharts.' + varName + '.parsed');
 				}
 			}
 
@@ -442,14 +443,16 @@
 				loadScript('customCode', customCodeArg);
 			}
 
-			$(document.body).css('margin', '0px');
+			document.body.style.margin = "0px"
 
 			if (outputType === 'jpeg') {
-				$(document.body).css('backgroundColor', 'white');
+				document.body.style.backgroundColor = "white"
 			}
 
-			$container = $('<div>').appendTo(document.body);
-			$container.attr('id', 'container');
+			//container = $('<div>').appendTo(document.body);
+			container = document.createElement('div');
+			container.id = 'container';
+			document.body.appendChild(container);
 
 			// disable animations
 			Highcharts.SVGRenderer.prototype.Element.prototype.animate = Highcharts.SVGRenderer.prototype.Element.prototype.attr;
@@ -465,7 +468,7 @@
 				options.chart = {};
 			}
 
-			options.chart.renderTo = $container[0];
+			options.chart.renderTo = container;
 
 			// check if witdh is set. Order of precedence:
 			// args.width, options.chart.width and 600px
@@ -525,7 +528,7 @@
 			}
 
 			return {
-				html: $('div.highcharts-container')[0].innerHTML,
+				html: document.getElementsByClassName('highcharts-container')[0],
 				width: chart.chartWidth,
 				height: chart.chartHeight,
 				imgUrls: imgUrls
