@@ -396,7 +396,7 @@
 			};
 		};
 
-		createChart = function (constr, input, globalOptionsArg, dataOptionsArg, customCodeArg, outputType) {
+		createChart = function (constr, input, globalOptionsArg, dataOptionsArg, customCodeArg, outputType, callback) {
 
 			var container, chart, nodes, nodeIter, elem, opacity, imgIndex, imgs, imgUrls;
 
