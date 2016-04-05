@@ -10,7 +10,7 @@
  * version: 2.0.1
  */
 
-/* global $, cb, clearInterval, clearTimeout, console, customCode,
+/* global cb, clearInterval, clearTimeout, console, customCode,
 	dataOptions, document, globalOptions, Highcharts, Image, options,
 	phantom, response, require, window */
 (function () {
@@ -405,7 +405,7 @@
 
 				var elem = document.createElement('script'),
 					body = 'var ' + varName + ' = ' + code;
-				elem.type = "text/javascript";
+				elem.type = 'text/javascript';
 				elem.appendChild(document.createTextNode(body));
 				document.getElementsByTagName('head')[0].appendChild(elem);
 
@@ -443,13 +443,12 @@
 				loadScript('customCode', customCodeArg);
 			}
 
-			document.body.style.margin = "0px"
+			document.body.style.margin = '0px';
 
 			if (outputType === 'jpeg') {
-				document.body.style.backgroundColor = "white"
+				document.body.style.backgroundColor = 'white';
 			}
 
-			//container = $('<div>').appendTo(document.body);
 			container = document.createElement('div');
 			container.id = 'container';
 			document.body.appendChild(container);
