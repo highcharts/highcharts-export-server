@@ -192,7 +192,7 @@
 				clipwidth,
 				clipheight;
 
-			if (parseInt(pageWidth, 10) === pageWidth) {
+			if (parseInt(pageWidth, 10) == pageWidth) { // eslint-disable-line eqeqeq
 				zoom = pageWidth / svg.width;
 			}
 
@@ -527,7 +527,7 @@
 			}
 
 			return {
-				html: document.getElementsByClassName('highcharts-container')[0],
+				html: document.getElementsByClassName('highcharts-container')[0].innerHTML,
 				width: chart.chartWidth,
 				height: chart.chartHeight,
 				imgUrls: imgUrls
