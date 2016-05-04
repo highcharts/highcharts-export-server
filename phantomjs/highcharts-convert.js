@@ -192,7 +192,7 @@
 				clipwidth,
 				clipheight;
 
-			if (parseInt(pageWidth, 10) === pageWidth) {
+			if (parseInt(pageWidth, 10) == pageWidth) { // eslint-disable-line eqeqeq
 				zoom = pageWidth / svg.width;
 			}
 
