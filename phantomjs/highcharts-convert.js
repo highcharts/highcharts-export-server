@@ -527,7 +527,7 @@
 			}
 
 			return {
-				html: document.getElementsByClassName('highcharts-container')[0],
+				html: document.getElementsByClassName('highcharts-container')[0].innerHTML,
 				width: chart.chartWidth,
 				height: chart.chartHeight,
 				imgUrls: imgUrls
