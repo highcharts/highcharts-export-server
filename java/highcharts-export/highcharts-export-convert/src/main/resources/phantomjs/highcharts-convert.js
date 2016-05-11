@@ -11,7 +11,7 @@
  */
 
 /* global cb, clearInterval, clearTimeout, console, customCode,
-	dataOptions, document, globalOptions, Highcharts, Image, options,
+	dataOptions, document, globalOptions, Highcharts, Image, options, themeOptions
 	phantom, response, require, window */
 (function () {
 	'use strict';
@@ -98,7 +98,7 @@
 		for (i = 0; i < system.args.length; i += 1) {
 			if (system.args[i].charAt(0) === '-') {
 				key = system.args[i].substr(1, i.length);
-				if (key === 'infile' || key === 'callback' || key === 'dataoptions' || key === 'globaloptions' || key === 'customcode') {
+				if (key === 'infile' || key === 'callback' || key === 'dataoptions' || key === 'globaloptions' || key === 'customcode' || key === 'themeoptions') {
 					// get string from file
 					try {
 						map[key] = fs.read(system.args[i + 1]).replace(/^\s+/, '');
@@ -396,7 +396,7 @@
 			};
 		};
 
-		createChart = function (constr, input, globalOptionsArg, dataOptionsArg, customCodeArg, outputType, callback) {
+		createChart = function (constr, input, themeOptionsArg, globalOptionsArg, dataOptionsArg, customCodeArg, outputType, callback) {
 
 			var container, chart, nodes, nodeIter, elem, opacity, imgIndex, imgs, imgUrls;
 
@@ -435,6 +435,10 @@
 				loadScript('globalOptions', globalOptionsArg);
 			}
 
+			if (themeOptionsArg !== 'undefined') {
+				loadScript('themeOptions', themeOptionsArg);
+			}
+
 			if (dataOptionsArg !== 'undefined') {
 				loadScript('dataOptions', dataOptionsArg);
 			}
@@ -462,6 +466,9 @@
 					}
 				}
 			});
+			
+			// merge optionally the chartOptions into the themeOptions
+			options = Highcharts.merge(true, themeOptions, options);
 
 			if (!options.chart) {
 				options.chart = {};
@@ -478,7 +485,6 @@
 			options.chart.width = (options.exporting && options.exporting.sourceWidth) || options.chart.width || 600;
 			options.chart.height = (options.exporting && options.exporting.sourceHeight) || options.chart.height || 400;
 
-			// Load globalOptions
 			if (globalOptions) {
 				Highcharts.setOptions(globalOptions);
 			}
@@ -493,7 +499,7 @@
 						});
 					}
 
-					var mergedOptions = Highcharts.merge(opts, options);
+					var mergedOptions = Highcharts.merge(true, opts, options);
 
 					// Run customCode
 					if (customCode) {
@@ -558,6 +564,7 @@
 				var svg,
 					globalOptions = params.globaloptions,
 					dataOptions = params.dataoptions,
+					themeOptions = params.themeoptions,
 					customCode = 'function customCode(options) {\n' + params.customcode + '}\n',
 					jsFile,
 					jsFiles;
@@ -591,7 +598,7 @@
 					}
 
 					// load chart in page and return svg height and width
-					svg = page.evaluate(createChart, constr, input, globalOptions, dataOptions, customCode, outType, callback, messages);
+					svg = page.evaluate(createChart, constr, input, themeOptions, globalOptions, dataOptions, customCode, outType, callback, messages);
 
 					if (!window.optionsParsed) {
 						exit('ERROR: the options variable was not available or couldn\'t be parsed, does the infile contain an syntax error? Input used:' + input);
