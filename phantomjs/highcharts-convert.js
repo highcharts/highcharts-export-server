@@ -597,6 +597,13 @@
 						}
 					}
 
+					// load user libraries
+					if (params.injectjs) {
+						params.injectjs.split(',').map(function (jsFile) {
+							page.injectJs(jsFile);
+						});
+					}
+
 					// load chart in page and return svg height and width
 					svg = page.evaluate(createChart, constr, input, themeOptions, globalOptions, dataOptions, customCode, outType, callback, messages);
 

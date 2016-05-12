@@ -9,7 +9,7 @@ For example highcharts.js or highstock.js and don't forget modules like gauge.js
 You need to install PhantomJS, a headless browser based on WebKit.
 For installation details, see http://phantomjs.org/download.html
 
-**note** 
+**note**
 The Highcharts files are subjected to the Highcharts License.
 #Example usage#
 ####Command line
@@ -40,6 +40,10 @@ The Highcharts files are subjected to the Highcharts License.
 	        'stroke-width' : 1
 	     }).add();
 	}
+
+**-injectjs:** Filename of extra script to inject in the page before rendering the chart (or comma-separated list of filenames):
+
+    phantomjs highcharts-convert.js -infile options1.json -outfile chart1.png -injectjs /my/own/jquery.js,/my/own/highcharts.js,/my/own/constants.js
 
 **-host** The hostname PhantomJS is listening to for POST-requests. If this parameter is specified, phantomjs startsup as Http-server.
 
