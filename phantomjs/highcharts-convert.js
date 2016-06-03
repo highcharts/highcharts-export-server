@@ -121,6 +121,7 @@
 			scaleAndClipPage,
 			loadChart,
 			createChart,
+			injectCss,
 			input,
 			constr,
 			callback,
@@ -540,6 +541,13 @@
 			};
 		};
 
+		injectCss = function (css) {
+			var elem = document.createElement('style');
+			elem.type = 'text/css';
+			elem.innerHTML = css;
+			document.body.appendChild(elem);
+		};
+
 		if (params.length < 1) {
 			exit('Error: Insufficient parameters');
 		} else {
@@ -566,7 +574,9 @@
 					dataOptions = params.dataoptions,
 					themeOptions = params.themeoptions,
 					customCode = 'function customCode(options) {\n' + params.customcode + '}\n',
-					jsFiles,
+					fileIdx,
+					content,
+					key,
 					resources = params.resources || 'resources.json';
 
 				/* Decide if we have to generate a svg first before rendering */
@@ -578,29 +588,36 @@
 					renderSVG(svg);
 				} else {
 					/**
-					 * We have a js file, let's render serverside from Highcharts options and grab the svg from it
+					 * We have a js file, let's render serverside from Highcharts options and grab the svg from it for rendering
 					 */
 
-					// load our javascript dependencies based on the constructor
-					if (constr === 'Map') {
-						jsFiles = config.files.highmaps;
-					} else if (constr === 'StockChart') {
-						jsFiles = config.files.highstock;
-					} else {
-						jsFiles = config.files.highcharts;
-					}
-
+					/**
+					 * Load resources needed for renderering for example highcharts files and/or css
+					 */
 					if (fs.exists(resources)) {
 						try {
 							resources = JSON.parse(fs.read(resources));
-							console.log(resources.js[0]);
-							// load necessary libraries
-
-							if (resources.hasOwnProperty('js')) {
-								jsFiles = resources.js;
-
-								for (var idx = 0; idx < jsFiles.length; idx++) {
-									page.injectJs(resources.js[idx]);
+							for (key in resources) {
+								if (resources.hasOwnProperty(key)) {
+									var config = resources[key];
+									if (key === 'css') {
+										content = '';
+										if (config.constructor === Array) {
+											for (fileIdx = 0; fileIdx < config.length; fileIdx++) {
+												console.log('test ' + config[fileIdx]);
+												content += fs.read(config[fileIdx]);
+											}
+										} else {
+											content += config;
+										}
+										page.evaluate(injectCss, content);
+									}
+									// injectJs to the page
+									if (key === 'js') {
+										for (fileIdx = 0; fileIdx < config.length; fileIdx++) {
+											page.injectJs(config[fileIdx]);
+										}
+									}
 								}
 							}
 						} catch(err) {
