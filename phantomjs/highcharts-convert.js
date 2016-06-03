@@ -466,7 +466,7 @@
 					}
 				}
 			});
-			
+
 			// merge optionally the chartOptions into the themeOptions
 			options = Highcharts.merge(true, themeOptions, options);
 
@@ -566,8 +566,8 @@
 					dataOptions = params.dataoptions,
 					themeOptions = params.themeoptions,
 					customCode = 'function customCode(options) {\n' + params.customcode + '}\n',
-					jsFile,
-					jsFiles;
+					jsFiles,
+					resources = params.resources || 'resources.json';
 
 				/* Decide if we have to generate a svg first before rendering */
 				if (input.substring(0, 4).toLowerCase() === '<svg' || input.substring(0, 5).toLowerCase() === '<?xml' ||
@@ -590,10 +590,21 @@
 						jsFiles = config.files.highcharts;
 					}
 
-					// load necessary libraries
-					for (jsFile in jsFiles) {
-						if (jsFiles.hasOwnProperty(jsFile)) {
-							page.injectJs(jsFiles[jsFile]);
+					if (fs.exists(resources)) {
+						try {
+							resources = JSON.parse(fs.read(resources));
+							console.log(resources.js[0]);
+							// load necessary libraries
+
+							if (resources.hasOwnProperty('js')) {
+								jsFiles = resources.js;
+
+								for (var idx = 0; idx < jsFiles.length; idx++) {
+									page.injectJs(resources.js[idx]);
+								}
+							}
+						} catch(err) {
+							console.error('Failed to parse resources config file:' + err);
 						}
 					}
 
