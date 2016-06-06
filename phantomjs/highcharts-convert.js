@@ -91,7 +91,7 @@
 			key;
 
 		if (system.args.length < 1) {
-			console.log('Commandline Usage: highcharts-convert.js -infile URL -outfile filename -scale 2.5 -width 300 -constr Chart -callback callback.js');
+			console.log('Commandline Usage: highcharts-convert.js -infile filename -outfile filename -scale 2.5 -width 300 -constr Chart -callback callback.js');
 			console.log(', or run PhantomJS as server: highcharts-convert.js -host 127.0.0.1 -port 1234');
 		}
 
