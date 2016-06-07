@@ -107,6 +107,7 @@
 						phantom.exit();
 					}
 				} else {
+					// assume PhantomJS running in serverMode. Parameter is not a file, but contains content.
 					map[key] = system.args[i + 1];
 				}
 			}
