@@ -122,7 +122,10 @@
 			scaleAndClipPage,
 			loadChart,
 			createChart,
-			injectCss,
+			appendStyleElement,
+			appendScriptElement,
+			injectOrAppend,
+			injectResources,
 			input,
 			constr,
 			callback,
@@ -542,11 +545,68 @@
 			};
 		};
 
-		injectCss = function (css) {
+		appendStyleElement = function (css) {
 			var elem = document.createElement('style');
 			elem.type = 'text/css';
 			elem.innerHTML = css;
 			document.body.appendChild(elem);
+		};
+
+		appendScriptElement = function (js) {
+			var script = document.createElement('script');
+			script.type = 'text/javascript';
+			script.charset = 'utf-8';
+			script.id = 'testing';
+			script.defer = true;
+			script.async = true;
+			script.text = js;
+			document.body.appendChild(script);
+		};
+
+		/*
+		 * inject or append script or css to the page, specified in an array
+		 */
+		injectOrAppend = function (fileList) {
+			var fileIdx,
+				fileName,
+				extension;
+			if (fileList.constructor === Array) {
+				for (fileIdx = 0; fileIdx < fileList.length; fileIdx++) {
+					fileName = fileList[fileIdx];
+					extension = fileName.split('.').pop();
+					if (fs.exists(fileName)) {
+						if (extension === 'js') {
+							page.injectJs(fileName);
+						}
+						if (extension === 'css') {
+							page.evaluate(appendStyleElement, fs.read(fileName));
+						}
+					}
+				}
+			}
+		};
+
+		/*
+		 * Process a json file where resources are specified by key.
+		 */
+		injectResources = function (resources) {
+			var key;
+
+			for (key in resources) {
+				if (resources.hasOwnProperty(key)) {
+					if (key === 'files') {
+						// work through a list of filenames specfied in a array.
+						injectOrAppend(resources.files);
+					}
+					// css or js file content is directly specfied on the property // instead of using filenames.
+					if (key === 'css') {
+						page.evaluate(appendStyleElement, resources.css);
+					}
+					if (key === 'js') {
+						page.evaluate(appendScriptElement, resources.js);
+					}
+				}
+			}
 		};
 
 		if (params.length < 1) {
@@ -575,9 +635,7 @@
 					dataOptions = params.dataoptions,
 					themeOptions = params.themeoptions,
 					customCode = 'function customCode(options) {\n' + params.customcode + '}\n',
-					fileIdx,
-					content,
-					key,
+					fileList,
 					resources = params.resources || 'resources.json';
 
 				/* Decide if we have to generate a svg first before rendering */
@@ -589,41 +647,29 @@
 					renderSVG(svg);
 				} else {
 					/**
-					 * We have a js file, let's render serverside from Highcharts options and grab the svg from it for rendering
+					 * We have to render a chart serverside from the send Highcharts options and use the svg for rendering to an image.
 					 */
 
 					/**
-					 * Load resources needed for renderering for example highcharts files and/or css
+					 * Load first resources needed for renderering for example highcharts files and/or css
+					 * resources can be specfied with:
+					 * 1. A string of filenames separated by comma's
+					 * 2. A JSON file with file content keyed by 'js' or 'css', or 'files' specifying local files in an array
 					 */
-					if (fs.exists(resources)) {
-						try {
-							resources = JSON.parse(fs.read(resources));
-							for (key in resources) {
-								if (resources.hasOwnProperty(key)) {
-									var config = resources[key];
-									if (key === 'css') {
-										content = '';
-										if (config.constructor === Array) {
-											for (fileIdx = 0; fileIdx < config.length; fileIdx++) {
-												console.log('test ' + config[fileIdx]);
-												content += fs.read(config[fileIdx]);
-											}
-										} else {
-											content += config;
-										}
-										page.evaluate(injectCss, content);
-									}
-									// injectJs to the page
-									if (key === 'js') {
-										for (fileIdx = 0; fileIdx < config.length; fileIdx++) {
-											page.injectJs(config[fileIdx]);
-										}
-									}
-								}
-							}
-						} catch(err) {
-							console.error('Failed to parse resources config file:' + err);
+
+					try {
+						if (fs.exists(resources)) {
+							// a local resources file is specfied, reassign resources with the content of the file
+							resources = fs.read(resources);
 						}
+						resources = JSON.parse(resources);
+						if (typeof resources === 'object') {
+							injectResources(resources);
+						}
+					} catch(err) {
+						// Not parsing as JSON, try if we have the resources specfied by a comma separated list of filenames.
+						fileList = resources.split('\,');
+						injectOrAppend(fileList);
 					}
 
 					// load chart in page and return svg height and width
