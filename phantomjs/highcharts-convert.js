@@ -68,6 +68,7 @@
 		startServer = false,
 		args,
 		pick,
+		extend,
 		SVG_DOCTYPE = '<?xml version=\"1.0" standalone=\"no\"?><!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">',
 		dpiCorrection = 1.0, // Correction factor for DPI scaling. Use if PDF export does not match page size (issue #4764).
 		// dpiCorrection = 72 / 96, // DPI correction setting for Windows
@@ -83,6 +84,26 @@
 				return arg;
 			}
 		}
+	};
+
+	/*
+	 * Extend an object with the members of another
+	 * @param {Object} a The object to be extended
+	 * @param {Object} b The object to add to the first one
+	 * @returns {Object}
+	 */
+	extend = function (a, b) {
+		var n;
+		if (!a) {
+			a = {};
+		}
+
+		for (n in b) {
+			if (b.hasOwnProperty(n)) {
+				a[n] = b[n];
+			}
+		}
+		return a;
 	};
 
 	mapCLArguments = function () {
@@ -636,7 +657,8 @@
 					themeOptions = params.themeoptions,
 					customCode = 'function customCode(options) {\n' + params.customcode + '}\n',
 					fileList,
-					resources = params.resources || 'resources.json';
+					resources,
+					resourcesParam;
 
 				/* Decide if we have to generate a svg first before rendering */
 				if (input.substring(0, 4).toLowerCase() === '<svg' || input.substring(0, 5).toLowerCase() === '<?xml' ||
@@ -653,24 +675,35 @@
 					/**
 					 * Load first resources needed for renderering for example highcharts files and/or css
 					 * resources can be specfied with:
-					 * 1. A string of filenames separated by comma's
+					 * 1. A string of filenames separated by comma's, keyed by the propertyname 'files'
 					 * 2. A JSON file with file content keyed by 'js' or 'css', or 'files' specifying local files in an array
 					 */
 
-					try {
-						if (fs.exists(resources)) {
-							// a local resources file is specfied, reassign resources with the content of the file
-							resources = fs.read(resources);
+					// read the local resources file needed for chart creation
+					if (fs.exists('resources.json')) {
+						try {
+							resources = JSON.parse(fs.read('resources.json'));
+						} catch(err) {
+							console.log('Cannot parse the local resources file');
 						}
-						resources = JSON.parse(resources);
-						if (typeof resources === 'object') {
-							injectResources(resources);
-						}
-					} catch(err) {
-						// Not parsing as JSON, try if we have the resources specfied by a comma separated list of filenames.
-						fileList = resources.split('\,');
-						injectOrAppend(fileList);
 					}
+
+					// extend resources config with resources specified on the parameter
+					if (params.resources !== undefined) {
+						try {
+							resourcesParam = JSON.parse(params.resources);
+							if (typeof resources === 'object') {
+								// extend the already defined resources from the local file with the resources defined with the parameter.
+								resources = extend(resources, resourcesParam);
+							}
+						} catch(err) {
+							// Not parsing as JSON, try if we have the resources specfied by a comma separated list of filenames.
+							fileList = resources.split('\,');
+							resources = extend(resources, { files: fileList });
+						}
+					}
+
+					injectResources(resources);
 
 					// load chart in page and return svg height and width
 					svg = page.evaluate(createChart, constr, input, themeOptions, globalOptions, dataOptions, customCode, outType, callback, messages);
