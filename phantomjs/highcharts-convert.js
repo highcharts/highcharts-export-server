@@ -101,8 +101,8 @@
 			createChart,
 			appendStyleElement,
 			appendScriptElement,
-			injectOrAppend,
 			injectResources,
+			injectResource,
 			input,
 			constr,
 			callback,
@@ -522,6 +522,10 @@
 			};
 		};
 
+		/**
+		 * @param {String} css - the css content to be inserted in a style tag placed in body element
+		 * @returns {undefined}
+		 */
 		appendStyleElement = function (css) {
 			var elem = document.createElement('style');
 			elem.type = 'text/css';
@@ -529,6 +533,10 @@
 			document.body.appendChild(elem);
 		};
 
+		/**
+		 * @param {String} js - the javascript content to be inserted in a script tag placed in body element
+		 * @returns {undefined}
+		 */
 		appendScriptElement = function (js) {
 			var script = document.createElement('script');
 			script.type = 'text/javascript';
@@ -540,47 +548,57 @@
 			document.body.appendChild(script);
 		};
 
-		/*
-		 * inject or append script or css to the page, specified in an array
+
+		/**
+		 * In ject or append files, content for javascript tags or style tags
+		 * @param {String} type - indicating the type of resource, of type: file, css or js
+		 * @param {String} resource - the content of the resource
+		 * @returns {undefined}
 		 */
-		injectOrAppend = function (fileList) {
-			var fileIdx,
-				fileName,
-				extension;
-			if (fileList.constructor === Array) {
-				for (fileIdx = 0; fileIdx < fileList.length; fileIdx++) {
-					fileName = fileList[fileIdx];
-					extension = fileName.split('.').pop();
-					if (fs.exists(fileName)) {
-						if (extension === 'js') {
-							page.injectJs(fileName);
-						}
-						if (extension === 'css') {
-							page.evaluate(appendStyleElement, fs.read(fileName));
-						}
-					}
-				}
+		injectResource = function (type, resource) {
+			if (type === 'js') {
+				page.evaluate(appendScriptElement, resource);
+			}
+			// css or js file content is directly specfied on the property // instead of using filenames.
+			if (type === 'css') {
+				page.evaluate(appendStyleElement, resource);
 			}
 		};
 
 		/*
 		 * Process a json file where resources are specified by key.
+		 * @param {Object} resources - an object with the folowing keys: files,js, css
 		 */
 		injectResources = function (resources) {
-			var key;
+			var key,
+				fileName,
+				fileIdx,
+				extension;
 
 			for (key in resources) {
 				if (resources.hasOwnProperty(key)) {
 					if (key === 'files') {
-						// work through a list of filenames specfied in a array.
-						injectOrAppend(resources.files);
+						if (resources.files.constructor.name === 'String' ) {
+							// Assume a comma separated string of filenames
+							resources.files = resources.files.split(',');
+						}
+						// loop through a array of local css or js files
+						for (fileIdx = 0; fileIdx < resources.files.length; fileIdx++) {
+							fileName = resources.files[fileIdx];
+							extension = fileName.split('.').pop();
+							if (fs.exists(fileName) && extension === 'js') {
+								// for local javascript files
+								page.injectJs(fileName);
+							}
+							if (fs.exists(fileName) && extension === 'css') {
+								// for js or css placed between tags
+								injectResource('css', fs.read(fileName));
+							}
+						}
 					}
 					// css or js file content is directly specfied on the property // instead of using filenames.
-					if (key === 'css') {
-						page.evaluate(appendStyleElement, resources.css);
-					}
-					if (key === 'js') {
-						page.evaluate(appendScriptElement, resources.js);
+					if (key === 'css' || key === 'js') {
+						injectResource(key, resources[key]);
 					}
 				}
 			}
