@@ -39,11 +39,16 @@ public class SVGConverter {
 
 	public String convert(String input, MimeType mime,
 			String constructor, String callback, String globalOptions, Float width, Float scale, String filename) throws SVGConverterException, PoolException, NoSuchElementException, TimeoutException {
-		return this.convert(input, globalOptions, null, null, mime, constructor, callback, width, scale, filename);
+		return this.convert(input, globalOptions, null, null, mime, constructor, callback, null, width, scale, filename);
+	}
+
+	public String convert(String input, MimeType mime,
+						  String constructor, String callback, String resources, String globalOptions, Float width, Float scale, String filename) throws SVGConverterException, PoolException, NoSuchElementException, TimeoutException {
+		return this.convert(input, globalOptions, null, null, mime, constructor, callback, resources, width, scale, filename);
 	}
 
 	public String convert(String input, String globalOptions, String dataOptions, String customCode, MimeType mime,
-			String constructor, String callback, Float width, Float scale, String filename) throws SVGConverterException, PoolException, NoSuchElementException, TimeoutException {
+			String constructor, String callback, String resources, Float width, Float scale, String filename) throws SVGConverterException, PoolException, NoSuchElementException, TimeoutException {
 
 			Map<String, String> params = new HashMap<String, String>();
 			Gson gson = new Gson();
@@ -62,6 +67,10 @@ public class SVGConverter {
 
 			if (callback != null && !callback.isEmpty()) {
 				params.put("callback", callback);
+			}
+
+			if (resources != null && !resources.isEmpty()) {
+				params.put("resources", resources);
 			}
 
 			if (globalOptions != null && !globalOptions.isEmpty()) {

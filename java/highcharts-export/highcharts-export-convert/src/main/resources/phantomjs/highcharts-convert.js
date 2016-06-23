@@ -17,50 +17,6 @@
 	'use strict';
 
 	var config = {
-			/* define locations of mandatory javascript files.
-			 * Depending on purchased license change the HIGHCHARTS property to
-			 * highcharts.js or highstock.js
-			 */
-
-			files: {
-				highcharts: {
-					HIGHCHARTS: 'highcharts.js',
-					HIGHCHARTS_MORE: 'highcharts-more.js',
-					HIGHCHARTS_DATA: 'data.js',
-					HIGHCHARTS_DRILLDOWN: 'drilldown.js',
-					HIGHCHARTS_FUNNEL: 'funnel.js',
-					HIGHCHARTS_HEATMAP: 'heatmap.js',
-					HIGHCHARTS_TREEMAP: 'treemap.js',
-					HIGHCHARTS_3D: 'highcharts-3d.js',
-					HIGHCHARTS_NODATA: 'no-data-to-display.js',
-					// Uncomment below if you have both Highcharts and Highmaps license
-					// HIGHCHARTS_MAP: 'map.js',
-					HIGHCHARTS_SOLID_GAUGE: 'solid-gauge.js',
-					BROKEN_AXIS: 'broken-axis.js'
-				},
-				highstock: {
-					HIGHCHARTS: 'highstock.js',
-					HIGHCHARTS_MORE: 'highcharts-more.js',
-					HIGHCHARTS_DATA: 'data.js',
-					HIGHCHARTS_DRILLDOWN: 'drilldown.js',
-					HIGHCHARTS_FUNNEL: 'funnel.js',
-					HIGHCHARTS_HEATMAP: 'heatmap.js',
-					HIGHCHARTS_TREEMAP: 'treemap.js',
-					HIGHCHARTS_3D: 'highcharts-3d.js',
-					HIGHCHARTS_NODATA: 'no-data-to-display.js',
-					// Uncomment below if you have both Highstock and Highmaps license
-					// HIGHCHARTS_MAP: 'map.js',
-					HIGHCHARTS_SOLID_GAUGE: 'solid-gauge.js',
-					BROKEN_AXIS: 'broken-axis.js'
-				},
-				highmaps: {
-					HIGHCHARTS: 'highmaps.js',
-					HIGHCHARTS_DATA: 'data.js',
-					HIGHCHARTS_DRILLDOWN: 'drilldown.js',
-					HIGHCHARTS_HEATMAP: 'heatmap.js',
-					HIGHCHARTS_NODATA: 'no-data-to-display.js'
-				}
-			},
 			TIMEOUT: 5000 /* 5 seconds timout for loading images */
 		},
 		mapCLArguments,
@@ -68,6 +24,7 @@
 		startServer = false,
 		args,
 		pick,
+		extend,
 		SVG_DOCTYPE = '<?xml version=\"1.0" standalone=\"no\"?><!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">',
 		dpiCorrection = 1.0, // Correction factor for DPI scaling. Use if PDF export does not match page size (issue #4764).
 		// dpiCorrection = 72 / 96, // DPI correction setting for Windows
@@ -85,13 +42,33 @@
 		}
 	};
 
+	/*
+	 * Extend an object with the members of another
+	 * @param {Object} a The object to be extended
+	 * @param {Object} b The object to add to the first one
+	 * @returns {Object}
+	 */
+	extend = function (a, b) {
+		var n;
+		if (!a) {
+			a = {};
+		}
+
+		for (n in b) {
+			if (b.hasOwnProperty(n)) {
+				a[n] = b[n];
+			}
+		}
+		return a;
+	};
+
 	mapCLArguments = function () {
 		var map = {},
 			i,
 			key;
 
 		if (system.args.length < 1) {
-			console.log('Commandline Usage: highcharts-convert.js -infile URL -outfile filename -scale 2.5 -width 300 -constr Chart -callback callback.js');
+			console.log('Commandline Usage: highcharts-convert.js -infile filename -outfile filename -scale 2.5 -width 300 -constr Chart -callback callback.js');
 			console.log(', or run PhantomJS as server: highcharts-convert.js -host 127.0.0.1 -port 1234');
 		}
 
@@ -107,6 +84,7 @@
 						phantom.exit();
 					}
 				} else {
+					// assume PhantomJS running in serverMode. Parameter is not a file, but contains content.
 					map[key] = system.args[i + 1];
 				}
 			}
@@ -121,6 +99,10 @@
 			scaleAndClipPage,
 			loadChart,
 			createChart,
+			appendStyleElement,
+			appendScriptElement,
+			injectResources,
+			injectResource,
 			input,
 			constr,
 			callback,
@@ -466,7 +448,7 @@
 					}
 				}
 			});
-			
+
 			// merge optionally the chartOptions into the themeOptions
 			options = Highcharts.merge(true, themeOptions, options);
 
@@ -540,6 +522,88 @@
 			};
 		};
 
+		/**
+		 * @param {String} css - the css content to be inserted in a style tag placed in body element
+		 * @returns {undefined}
+		 */
+		appendStyleElement = function (css) {
+			var elem = document.createElement('style');
+			elem.type = 'text/css';
+			elem.innerHTML = css;
+			document.body.appendChild(elem);
+		};
+
+		/**
+		 * @param {String} js - the javascript content to be inserted in a script tag placed in body element
+		 * @returns {undefined}
+		 */
+		appendScriptElement = function (js) {
+			var script = document.createElement('script');
+			script.type = 'text/javascript';
+			script.charset = 'utf-8';
+			script.id = 'testing';
+			script.defer = true;
+			script.async = true;
+			script.text = js;
+			document.body.appendChild(script);
+		};
+
+
+		/**
+		 * In ject or append files, content for javascript tags or style tags
+		 * @param {String} type - indicating the type of resource, of type: file, css or js
+		 * @param {String} resource - the content of the resource
+		 * @returns {undefined}
+		 */
+		injectResource = function (type, resource) {
+			if (type === 'js') {
+				page.evaluate(appendScriptElement, resource);
+			}
+			// css or js file content is directly specfied on the property // instead of using filenames.
+			if (type === 'css') {
+				page.evaluate(appendStyleElement, resource);
+			}
+		};
+
+		/*
+		 * Process a json file where resources are specified by key.
+		 * @param {Object} resources - an object with the folowing keys: files,js, css
+		 */
+		injectResources = function (resources) {
+			var key,
+				fileName,
+				fileIdx,
+				extension;
+
+			for (key in resources) {
+				if (resources.hasOwnProperty(key)) {
+					if (key === 'files') {
+						if (resources.files.constructor.name === 'String' ) {
+							// Assume a comma separated string of filenames
+							resources.files = resources.files.split(',');
+						}
+						// loop through a array of local css or js files
+						for (fileIdx = 0; fileIdx < resources.files.length; fileIdx++) {
+							fileName = resources.files[fileIdx];
+							extension = fileName.split('.').pop();
+							if (fs.exists(fileName) && extension === 'js') {
+								// for local javascript files
+								page.injectJs(fileName);
+							}
+							if (fs.exists(fileName) && extension === 'css') {
+								// for js or css placed between tags
+								injectResource('css', fs.read(fileName));
+							}
+						}
+					}
+					// css or js file content is directly specfied on the property // instead of using filenames.
+					if (key === 'css' || key === 'js') {
+						injectResource(key, resources[key]);
+					}
+				}
+			}
+		};
+
 		if (params.length < 1) {
 			exit('Error: Insufficient parameters');
 		} else {
@@ -566,8 +630,9 @@
 					dataOptions = params.dataoptions,
 					themeOptions = params.themeoptions,
 					customCode = 'function customCode(options) {\n' + params.customcode + '}\n',
-					jsFile,
-					jsFiles;
+					fileList,
+					resources,
+					resourcesParam;
 
 				/* Decide if we have to generate a svg first before rendering */
 				if (input.substring(0, 4).toLowerCase() === '<svg' || input.substring(0, 5).toLowerCase() === '<?xml' ||
@@ -578,24 +643,41 @@
 					renderSVG(svg);
 				} else {
 					/**
-					 * We have a js file, let's render serverside from Highcharts options and grab the svg from it
+					 * We have to render a chart serverside from the send Highcharts options and use the svg for rendering to an image.
 					 */
 
-					// load our javascript dependencies based on the constructor
-					if (constr === 'Map') {
-						jsFiles = config.files.highmaps;
-					} else if (constr === 'StockChart') {
-						jsFiles = config.files.highstock;
-					} else {
-						jsFiles = config.files.highcharts;
-					}
+					/**
+					 * Load first resources needed for renderering for example highcharts files and/or css
+					 * resources can be specfied with:
+					 * 1. A string of filenames separated by comma's, keyed by the propertyname 'files'
+					 * 2. A JSON file with file content keyed by 'js' or 'css', or 'files' specifying local files in an array
+					 */
 
-					// load necessary libraries
-					for (jsFile in jsFiles) {
-						if (jsFiles.hasOwnProperty(jsFile)) {
-							page.injectJs(jsFiles[jsFile]);
+					// read the local resources file needed for chart creation
+					if (fs.exists('resources.json')) {
+						try {
+							resources = JSON.parse(fs.read('resources.json'));
+						} catch(err) {
+							console.log('Cannot parse the local resources file');
 						}
 					}
+
+					// extend resources config with resources specified on the parameter
+					if (params.resources !== undefined) {
+						try {
+							resourcesParam = JSON.parse(params.resources);
+							if (typeof resources === 'object') {
+								// extend the already defined resources from the local file with the resources defined with the parameter.
+								resources = extend(resources, resourcesParam);
+							}
+						} catch(err) {
+							// Not parsing as JSON, try if we have the resources specfied by a comma separated list of filenames.
+							fileList = resources.split('\,');
+							resources = extend(resources, { files: fileList });
+						}
+					}
+
+					injectResources(resources);
 
 					// load chart in page and return svg height and width
 					svg = page.evaluate(createChart, constr, input, themeOptions, globalOptions, dataOptions, customCode, outType, callback, messages);

@@ -70,6 +70,7 @@ public class ExportController extends HttpServlet {
 		@RequestParam(value = "constr", required = false) String constructor,
 		@RequestParam(value = "callback", required = false) String callback,
 		@RequestParam(value = "callbackHC", required = false) String callbackHC,
+		@RequestParam(value = "resources", required = false) String resources,
 		@RequestParam(value = "async", required = false, defaultValue = "false")  Boolean async,
 		@RequestParam(value = "jsonp", required = false, defaultValue = "false") Boolean jsonp,
 		HttpServletRequest request,
@@ -127,7 +128,7 @@ public class ExportController extends HttpServlet {
 			session.setAttribute("tempFile", randomFilename);
 		}
 
-		String output = convert(svg, mime, width, scale, options, constructor, callback, globalOptions, randomFilename);
+		String output = convert(svg, mime, width, scale, options, constructor, callback, resources, globalOptions, randomFilename);
 		ByteArrayOutputStream stream;
 
 		HttpHeaders headers = new HttpHeaders();
@@ -231,7 +232,7 @@ public class ExportController extends HttpServlet {
 	 * INSTANCE METHODS
 	 */
 
-	private String convert(String svg, MimeType mime, String width, String scale, String options, String constructor, String callback, String globalOptions, String filename) throws SVGConverterException, PoolException, NoSuchElementException, TimeoutException, ServletException {
+	private String convert(String svg, MimeType mime, String width, String scale, String options, String constructor, String callback, String resources, String globalOptions, String filename) throws SVGConverterException, PoolException, NoSuchElementException, TimeoutException, ServletException {
 
 		Float parsedWidth = widthToFloat(width);
 		Float parsedScale = scaleToFloat(scale);
@@ -245,6 +246,7 @@ public class ExportController extends HttpServlet {
 			// create a svg file out of the options
 			input = options;
 			callback = sanitize(callback);
+			resources = sanitize(resources);
 			globalOptions = sanitize(globalOptions);
 		} else {
 			// assume SVG conversion
