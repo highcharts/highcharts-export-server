@@ -585,11 +585,18 @@
 						// loop through a array of local css or js files
 						for (fileIdx = 0; fileIdx < resources.files.length; fileIdx++) {
 							fileName = resources.files[fileIdx];
+
+							// first check if the path exists, otherwise assume the file to be in the libaryPath
+							if (!fs.exists(fileName)) {
+								fileName = phantom.libraryPath + fs.separator + fileName;
+							}
+
 							extension = fileName.split('.').pop();
 							if (fs.exists(fileName) && extension === 'js') {
 								// for local javascript files
 								page.injectJs(fileName);
 							}
+
 							if (fs.exists(fileName) && extension === 'css') {
 								// for js or css placed between tags
 								injectResource('css', fs.read(fileName));
@@ -631,6 +638,7 @@
 					themeOptions = params.themeoptions,
 					customCode = 'function customCode(options) {\n' + params.customcode + '}\n',
 					fileList,
+					resourcesFile = page.libraryPath + '/resources.json',
 					resources,
 					resourcesParam;
 
@@ -654,9 +662,9 @@
 					 */
 
 					// read the local resources file needed for chart creation
-					if (fs.exists('resources.json')) {
+					if (fs.exists(resourcesFile)) {
 						try {
-							resources = JSON.parse(fs.read('resources.json'));
+							resources = JSON.parse(fs.read(resourcesFile));
 						} catch(err) {
 							console.log('Cannot parse the local resources file');
 						}
