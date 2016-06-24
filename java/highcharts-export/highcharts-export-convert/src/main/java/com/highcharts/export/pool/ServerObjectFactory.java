@@ -190,7 +190,7 @@ public class ServerObjectFactory implements ObjectFactory<Server> {
 		URLClassLoader jarLoader = new URLClassLoader(new URL[]{u}, Thread.currentThread().getContextClassLoader());
 		PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver(jarLoader);
 		try {
-			Resource[] resources = resolver.getResources("classpath*:/phantomjs/*.js");
+			Resource[] resources = resolver.getResources("classpath*:/phantomjs/*.js*");
 			for (Resource resource : resources) {
 				logger.info("Copying " + resource.getFilename() + " to " + TempDir.getPhantomJsDir());
 				Path path = Paths.get(TempDir.getPhantomJsDir().toString(), resource.getFilename());
