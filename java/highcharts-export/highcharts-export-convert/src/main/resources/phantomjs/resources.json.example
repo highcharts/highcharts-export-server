@@ -1,5 +1,5 @@
 {
     "files": "highstock.js,highcharts-more.js,data.js,drilldown.js,funnel.js,heatmap.js,treemap.js,highcharts-3d.js,no-data-to-display.js,map.js,solid-gauge.js,broken-axis.js",
-    "css": "g.highcharts-series rect {fill: pink}",
-    "js": "console.log(\"running Javascript\")"
+    "css": "g.highcharts-series path {stroke-width:2;stroke: pink}",
+    "js": "document.body.style.webkitTransform = \"rotate(-10deg)\";"
 }
