@@ -1,25 +1,5 @@
-.idea/
-=======
 
-### OSX ###
-.DS_Store
-
-### Intellij ###
-*.iml
-.idea/
-
-### Java ###
-*.class
-
-### Eclipse ###
-.project
-.classpath
-.settings/
-
-### Maven ###
-target/
-
-### Sublime Text 2 ###
-*sublime*
-
-phantomjs/highcharts.js
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
