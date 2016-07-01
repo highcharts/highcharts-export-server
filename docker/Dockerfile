@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y maven
 
 # INSTALL THE HIGHCHARTS-EXPORT MODULE IN  LOCAL MAVEN REPOSITORY
 
-COPY ./java /java
+COPY ../java /java
 
 # DOWNLOAD HIGHCHARTS JAVASCRIPT.
 # FOR LICENSING REASONS, IT'S RECOMMENDED TO USE THE HIGHCHARTS COMPILED FILES FROM code.highcharts.com/[highcharts-version-you-use]/
@@ -18,9 +18,22 @@ COPY ./java /java
 
 ENV HIGHCHARTS_VERSION 4.2.5
 
-RUN wget http://code.highcharts.com/$HIGHCHARTS_VERSION/highcharts.js \
-&&  wget http://code.highcharts.com/stock/$HIGHCHARTS_VERSION/highstock.js \
-&&  wget http://code.highcharts.com/maps/$HIGHCHARTS_VERSION/highmaps.js
+# RUN wget http://code.highcharts.com/$HIGHCHARTS_VERSION/highcharts.js \
+# &&  wget http://code.highcharts.com/$HIGHCHARTS_VERSION/highcharts－more.js \
+# &&  wget http://code.highcharts.com/$HIGHCHARTS_VERSION/modules/data.js \
+# &&  wget http://code.highcharts.com/$HIGHCHARTS_VERSION/modules/drilldown.js \
+# &&  wget http://code.highcharts.com/$HIGHCHARTS_VERSION/modules/funnel.js \
+# &&  wget http://code.highcharts.com/$HIGHCHARTS_VERSION/modules/heatmap.js \
+# &&  wget http://code.highcharts.com/$HIGHCHARTS_VERSION/modules/treemap.js \
+# &&  wget http://code.highcharts.com/$HIGHCHARTS_VERSION/highcharts-3d.js \
+# &&  wget http://code.highcharts.com/$HIGHCHARTS_VERSION/modules/no-data-to-display.js \
+# &&  wget http://code.highcharts.com/$HIGHCHARTS_VERSION/modules/solid-gauge.js \
+# &&  wget http://code.highcharts.com/$HIGHCHARTS_VERSION/modules/broken-axis.js \
+# &&  wget http://code.highcharts.com/stock/$HIGHCHARTS_VERSION/highstock.js \
+# &&  wget http://code.highcharts.com/maps/$HIGHCHARTS_VERSION/highmaps.js \
+# &&  wget http://code.highcharts.com/maps/$HIGHCHARTS_VERSION/modules/treemap.js
+
+
 
 # COPY THE HIGHCHARTS FILES MANUALLY TO THE PHANTOMJS LOCATION.
 
@@ -82,7 +95,7 @@ RUN cd $CATALINA_HOME \
 
 # Add phantomjs binary
 
-COPY java/phantomjs /usr/local/bin/
+COPY phantomjs /usr/local/bin/
 RUN chmod +x /usr/local/bin/phantomjs
 
 # Add fonts, remember ADD will auto-extract
