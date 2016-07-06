@@ -22,20 +22,15 @@ To build from source you need to clone the git repo and run docker build:
   docker build -t highcharts-export-server:<TAG> .
 ```
 
-## **Pulling from Docker Hub**
+Please make sure that uncomment those lines regarding downloading highcharts.js before you run "docker build". Otherwise, docker image won't work. 
 
-Pull the image from docker hub rather than downloading the git repo. This prevents you having to build the image on every docker host:
-
-```
-  docker pull highcharts/highcharts-export-server:<TAG>
-```
 
 ## **Running**
 
 To simply run the container:
 
 ```
- docker run -p 8080:8080 --rm -it highcharts/highcharts-export-server:<TAG>
+ docker run -p 8080:8080 --rm -it highcharts-export-server:<TAG>
 ```
 You can then browse to http://<DOCKER_HOST>:8080 to view the live export-server. To find your DOCKER_HOST use the docker inspect to get the IP address.
 
