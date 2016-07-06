@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y maven
 
 # INSTALL THE HIGHCHARTS-EXPORT MODULE IN  LOCAL MAVEN REPOSITORY
 
-COPY ../java /java
+COPY ./java /java
 
 # DOWNLOAD HIGHCHARTS JAVASCRIPT.
 # FOR LICENSING REASONS, IT'S RECOMMENDED TO USE THE HIGHCHARTS COMPILED FILES FROM code.highcharts.com/[highcharts-version-you-use]/

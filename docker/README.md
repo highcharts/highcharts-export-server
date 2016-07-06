@@ -58,7 +58,7 @@ RUN wget http://code.highcharts.com/$HIGHCHARTS_VERSION/highcharts.js \
 
 
 
-### Add More Fonts
+### Add Fonts
 
 You can find more fonts online and place them in this location /fonts/usr/share/fonts  
 Note that you have to be responsible of authorization of using some fonts

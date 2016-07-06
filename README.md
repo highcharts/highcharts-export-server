@@ -1,76 +1,12 @@
 
-# **The Highcharts Export server docker image**
+## **Setting up the export server**
 
-We provide our clients with docker image for export server, with the ability to set up their own server simply and fast.
+There may be cases where you don't want to use Highcharts' featured export server, for instance if you are running a secure website or if you don't want your data to be passed to the Highcharts CDN.
 
-## **What is Docker**
+Before setting up your own server, consider using the client side export module. In short, a dedicated server is only needed if you need to support IE8 and older, or if you are having problems with the features listed in the client side export browser support table.
 
-Docker is the world's leading software containerization platform. Docker containers wrap a piece of software in a complete filesystem that contains everything needed to run: code, runtime, system tools, system libraries – anything that can be installed on a server. This guarantees that the software will always run the same, regardless of its environment.
+If you still need to set up your own server, we have a few flavors of servers to choose from;
 
-### **Installation**
-
-You need to instal docker engine in your local machine or your server first.  For installation details, can be seen from here.
-
-[https://docs.docker.com/engine/installation/](https://docs.docker.com/engine/installation/)
-
-## **Building from source**
-
-To build from source you need to clone the git repo and run docker build:
-
-```
-  git clone https://github.com/highcharts/highcharts-export-server.git
-  docker build -t highcharts-export-server:<TAG> .
-```
-
-## **Pulling from Docker Hub**
-
-Pull the image from docker hub rather than downloading the git repo. This prevents you having to build the image on every docker host:
-
-```
-  docker pull highcharts/highcharts-export-server:<TAG>
-```
-
-## **Running**
-
-To simply run the container:
-
-```
- docker run -p 8080:8080 --rm -it highcharts/highcharts-export-server:<TAG>
-```
-You can then browse to http://<DOCKER_HOST>:8080 to view the live export-server. To find your DOCKER_HOST use the docker inspect to get the IP address.
-
-## **Custiomize export-server**
-
-### Choose Highcharts JS version
-
-Within Dockerfile, you can declare the specific version of highcharts you gonna use and specific js modules as well.  
-For licensing reasons, it's recommended to use the highcharts compiled files from code.highcharts.com/[highcharts-version-you-use]/
-and when you use them, you acknowledge that you own highcharts license.
-
-In Dockerfile,  find these lines and config the specific modules you gonna include docker container or not.
-```
-ENV HIGHCHARTS_VERSION 4.2.5
-
-RUN wget http://code.highcharts.com/$HIGHCHARTS_VERSION/highcharts.js \
-&&  wget http://code.highcharts.com/stock/$HIGHCHARTS_VERSION/highstock.js \
-&&  wget http://code.highcharts.com/maps/$HIGHCHARTS_VERSION/highmaps.js
-```
-
-
-
-### Add More Fonts
-
-You can find more fonts online and place them in this location /fonts/usr/share/fonts  
-Note that you have to be responsible of authorization of using some fonts
-
-### Build your own docker image to Dockerhub
-
-Build docker image
-```
-        $ docker build -t <DOCKER_HUB>/highcharts-export-prod:424 .
-```
-
-Run it
-```
-        $ docker run -p 8080:8080 --rm -it  <DOCKER_HUB>/highcharts-export-prod:424
-```
+1. The simple export server, based on PHP and Batik.
+2. More advanced server, based on Java and PhantomJS, which also support serverside rendering of charts.
+3. Build export server docker image 
