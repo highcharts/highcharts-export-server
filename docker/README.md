@@ -13,7 +13,7 @@ You need to instal docker engine in your local machine or your server first.  Fo
 
 [https://docs.docker.com/engine/installation/](https://docs.docker.com/engine/installation/)
 
-## **Building from source**
+## **Building Docker image from source**
 
 To build from source you need to clone the git repo and run docker build:
 
@@ -22,7 +22,7 @@ To build from source you need to clone the git repo and run docker build:
   docker build -t highcharts-export-server:<TAG> .
 ```
 
-Please make sure that uncomment those lines regarding downloading highcharts.js before you run "docker build". Otherwise, docker image won't work. 
+Please make sure that uncomment those lines regarding downloading highcharts.js in Dockerfile before you run docker build. Otherwise, Docker image won't work.
 
 
 ## **Running**
