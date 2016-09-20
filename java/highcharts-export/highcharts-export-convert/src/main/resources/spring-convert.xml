@@ -37,4 +37,14 @@
 		<constructor-arg name="retentionTime" value="${retentionTime}"/>
 	</bean>
 
+	<bean id="server" class="com.highcharts.export.server.Server">
+		<constructor-arg name="exec" value="${exec}"/>
+		<constructor-arg name="script" value="${script}"/>
+		<constructor-arg name="host" value="${host}"/>
+		<constructor-arg name="port" value="#{serverObjectFactory.getAvailablePort()}"/>
+		<constructor-arg name="connectTimeout" value="${connectTimeout}"/>
+		<constructor-arg name="readTimeout" value="${readTimeout}"/>
+		<constructor-arg name="maxTimeout" value="${maxTimeout}"/>
+	</bean>
+
 </beans>
