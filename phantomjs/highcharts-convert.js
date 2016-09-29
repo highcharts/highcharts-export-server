@@ -613,7 +613,11 @@
 		if (params.length < 1) {
 			exit('Error: Insufficient parameters');
 		} else {
-			input = params.infile;
+		    	if (params.infile === undefined || params.infile.length === 0) {
+				input = params.options;
+			} else {
+				input = params.infile;
+			}
 			output = params.outfile;
 
 			if (output !== undefined) {
