@@ -696,7 +696,11 @@
 					if (callback !== undefined && !window.callbackParsed) {
 						exit('ERROR: the callback variable was not available, does the callback contain an syntax error? Callback used: ' + callback);
 					}
-					renderSVG(svg);
+					if(typeof svg !== 'undefined' && svg !== null){
+						renderSVG(svg);
+					}else{
+						exit('ERROR: fail to render chart in page, svg is null.');
+					}
 				}
 			});
 		}
