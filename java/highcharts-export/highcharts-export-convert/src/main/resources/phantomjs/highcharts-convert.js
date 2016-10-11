@@ -678,8 +678,8 @@
 								resources = extend(resources, resourcesParam);
 							}
 						} catch(err) {
-							// Not parsing as JSON, try if we have the resources specfied by a comma separated list of filenames.
-							fileList = resources.split('\,');
+							// Not parsing as JSON, try if we have the resources specified by a comma separated list of filenames.
+							fileList = params.resources.split('\,');
 							resources = extend(resources, { files: fileList });
 						}
 					}
