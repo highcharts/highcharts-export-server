@@ -713,20 +713,20 @@
 	startServer = function (host, port) {
 		var server = require('webserver').create();
 
-		function onError(msg, e) {
-			msg = 'Failed rendering: \n';
-			if (e) {
-				msg += e;
-			}
-			response.statusCode = 500;
-			response.setHeader('Content-Type', 'text/plain');
-			response.setHeader('Content-Length', msg.length);
-			response.write(msg);
-			response.close();
-		}
 
 		server.listen(host ? host + ':' + port : parseInt(port, 10),
 			function (request, response) {
+				function onError(msg, e) {
+					msg = 'Failed rendering: \n';
+					if (e) {
+						msg += e;
+					}
+					response.statusCode = 500;
+					response.setHeader('Content-Type', 'text/plain');
+					response.setHeader('Content-Length', msg.length);
+					response.write(msg);
+					response.close();
+				}
 				var jsonStr = request.postRaw || request.post,
 					params;
 				try {
