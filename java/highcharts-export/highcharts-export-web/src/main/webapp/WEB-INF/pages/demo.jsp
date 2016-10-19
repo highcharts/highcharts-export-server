@@ -11,7 +11,7 @@
 <link rel="stylesheet" type="text/css" href="resources/css/codemirror.css" />
 <script src="resources/js/jquery-1.11.0.min.js"></script>
 <script src="resources/js/codemirror-compressed.js"></script>
-<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400,700,400italic" type="text/css" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400,700,400italic" type="text/css" />
 <script>
 	var editors = [];
 
