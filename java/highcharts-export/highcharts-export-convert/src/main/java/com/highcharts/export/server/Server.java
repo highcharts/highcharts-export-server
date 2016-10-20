@@ -123,6 +123,12 @@ public class Server {
 			InputStream in = connection.getInputStream();
 			response = IOUtils.toString(in, "utf-8");
 
+			if (response.toUpperCase().startsWith("ERROR")) { // Log errors
+				logger.log(Level.SEVERE, "PhantomJS exited with message '" + response + "'", port);
+			} else if (!response.equals("OK")){ // Filter out simple pings, but log anything else
+				logger.log(Level.INFO, "PhantomJS completed with message '" + response + "'", port);
+			}
+
 			in.close();
 			_timer.cancel();
 			state = ServerState.IDLE;
