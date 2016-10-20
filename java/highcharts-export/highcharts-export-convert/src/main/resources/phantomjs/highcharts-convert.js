@@ -92,7 +92,7 @@
 		return map;
 	};
 
-	render = function (params, exitCallback) {
+	render = function (params, exitCallback, exitErrorCallback) {
 
 		var page = require('webpage').create(),
 			messages = {},
@@ -112,6 +112,7 @@
 			renderSVG,
 			convert,
 			exit,
+			exitError,
 			interval,
 			counter,
 			imagesLoaded = false;
@@ -148,7 +149,7 @@
 		};
 
 		page.onError = function (msg, trace) {
-			var msgStack = ['ERROR: ' + msg];
+			var msgStack = [msg];
 
 			if (trace && trace.length) {
 				msgStack.push('TRACE:');
@@ -159,9 +160,7 @@
 
 			console.error(msgStack.join('\n'));
 
-			if (exitCallback !== null) {
-				exitCallback(msg);
-			}
+			exitError(msg);
 		};
 
 		/* scale and clip the page */
@@ -219,12 +218,21 @@
 			}
 		};
 
-		exit = function (result) {
+		exit = function (result, error) {
 			if (serverMode) {
 				// Calling page.close(), may stop the increasing heap allocation
 				page.close();
 			}
-			exitCallback(result);
+			console.log('Exited with message \'' + result + '\'');
+			if (error !== true && exitCallback !== null) {
+				exitCallback(result);
+			} else if (error === true && exitErrorCallback !== null) {
+				exitErrorCallback(result);
+			}
+		};
+
+		exitError = function (result) {
+			exit('ERROR: ' + result, true);
 		};
 
 		convert = function (svg) {
@@ -317,7 +325,7 @@
 						// we have a 5 second timeframe..
 						timer = window.setTimeout(function () {
 							clearInterval(interval);
-							exitCallback('ERROR: While rendering, there\'s is a timeout reached');
+							exitError('While rendering, there\'s is a timeout reached');
 						}, config.TIMEOUT);
 					} else {
 						// images are loaded, render rightaway
@@ -325,7 +333,7 @@
 					}
 				}
 			} catch (e) {
-				console.log('ERROR: While rendering, ' + e);
+				exitError('While rendering, ' + e);
 			}
 		};
 
@@ -611,7 +619,7 @@
 		};
 
 		if (params.length < 1) {
-			exit('Error: Insufficient parameters');
+			exitError('Insufficient parameters');
 		} else {
 		    	if (params.infile === undefined || params.infile.length === 0) {
 				input = params.options;
@@ -631,7 +639,7 @@
 			// width = params.width;
 
 			if (input === undefined || input.length === 0) {
-				exit('Error: Insuficient or wrong parameters for rendering');
+				exitError('Insuficient or wrong parameters for rendering');
 			}
 
 			page.open('about:blank', function () {
@@ -694,16 +702,16 @@
 					svg = page.evaluate(createChart, constr, input, themeOptions, globalOptions, dataOptions, customCode, outType, callback, messages);
 
 					if (!window.optionsParsed) {
-						exit('ERROR: the options variable was not available or couldn\'t be parsed, does the infile contain an syntax error? Input used:' + input);
+						exitError('the options variable was not available or couldn\'t be parsed, does the infile contain an syntax error? Input used:' + input);
 					}
 
 					if (callback !== undefined && !window.callbackParsed) {
-						exit('ERROR: the callback variable was not available, does the callback contain an syntax error? Callback used: ' + callback);
+						exitError('the callback variable was not available, does the callback contain an syntax error? Callback used: ' + callback);
 					}
 					if(typeof svg !== 'undefined' && svg !== null){
 						renderSVG(svg);
 					} else {
-						exit('ERROR: fail to render chart in page, svg is null.');
+						exitError('failed to render chart in page, svg is null.');
 					}
 				}
 			});
@@ -716,6 +724,11 @@
 
 		server.listen(host ? host + ':' + port : parseInt(port, 10),
 			function (request, response) {
+				function onSuccess(msg) {
+					response.statusCode = 200;
+					response.write(msg);
+					response.close();
+				}
 				function onError(msg, e) {
 					msg = 'Failed rendering: \n';
 					if (e) {
@@ -737,14 +750,10 @@
 						response.write('OK');
 						response.close();
 					} else {
-						render(params, function (result) {
-							response.statusCode = 200;
-							response.write(result);
-							response.close();
-						}, onError);
+						render(params, onSuccess, onError);
 					}
 				} catch (e) {
-					onError('Failed rendering chart');
+					onError('ERROR: Failed rendering chart');
 				}
 			}); // end server.listen
 
