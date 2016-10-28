@@ -119,6 +119,7 @@
 
 		messages.optionsParsed = 'Highcharts.options.parsed';
 		messages.callbackParsed = 'Highcharts.cb.parsed';
+		messages.chartLoadCalled = 'Highcharts.load.called';
 
 		window.optionsParsed = false;
 		window.callbackParsed = false;
@@ -126,8 +127,50 @@
 		// security measures, for not allowing loading iframes
 		page.navigationLocked = true;
 
+		function renderSVGWithImages() {
+			var svg = page.evaluate(function () {
+				var imgs,
+					imgUrls,
+					imgIndex;
+
+				imgs = document.getElementsByTagName('image');
+
+				imgUrls = [];
+
+				for (imgIndex = 0; imgIndex < imgs.length; imgIndex = imgIndex + 1) {
+					imgUrls.push(imgs[imgIndex].href.baseVal);
+				}
+
+				return {
+					html: document.getElementsByClassName('highcharts-container')[0].innerHTML,
+					width: options.chart.width,
+					height: options.chart.height,
+					imgUrls: imgUrls
+				};
+			});
+
+			if (!window.optionsParsed) {
+				exitError('the options variable was not available or couldn\'t be parsed, does the infile contain an syntax error? Input used:' + input);
+			}
+
+			if (callback !== undefined && !window.callbackParsed) {
+				exitError('the callback variable was not available, does the callback contain an syntax error? Callback used: ' + callback);
+			}
+			if(typeof svg !== 'undefined' && svg !== null){
+				renderSVG(svg);
+			} else {
+				exitError('failed to render chart in page, svg is null.');
+			}
+		}
+
 		page.onConsoleMessage = function (msg) {
+			var svg;
 			console.log(msg);
+
+			// Listen for chart.load to be called before rendering SVG
+			if (msg === messages.chartLoadCalled) {
+				renderSVGWithImages();
+			}
 
 			/*
 			 * Ugly hack, but only way to get messages out of the 'page.evaluate()'
@@ -386,9 +429,9 @@
 			};
 		};
 
-		createChart = function (constr, input, themeOptionsArg, globalOptionsArg, dataOptionsArg, customCodeArg, outputType, callback) {
+		createChart = function (constr, input, themeOptionsArg, globalOptionsArg, dataOptionsArg, customCodeArg, outputType, callback, messages) {
 
-			var container, chart, nodes, nodeIter, elem, opacity, imgIndex, imgs, imgUrls;
+			var container, chart, nodes, nodeIter, elem, opacity, imgIndex, imgs, imgUrls, userLoadCallback;
 
 			// dynamic script insertion
 			function loadScript(varName, code) {
@@ -475,6 +518,23 @@
 			options.chart.width = (options.exporting && options.exporting.sourceWidth) || options.chart.width || 600;
 			options.chart.height = (options.exporting && options.exporting.sourceHeight) || options.chart.height || 400;
 
+
+			if (!options.chart.events) {
+				options.chart.events = {};
+			}
+
+			if (options.chart.events.load) {
+				userLoadCallback = options.chart.events.load;
+			}
+
+			options.chart.events.load = function (event) {
+				if (userLoadCallback && typeof userLoadCallback === 'function') {
+					userLoadCallback(event);
+				}
+				console.log(messages.chartLoadCalled);
+			}
+
+
 			if (globalOptions) {
 				Highcharts.setOptions(globalOptions);
 			}
@@ -514,20 +574,6 @@
 				elem.removeAttribute('stroke-opacity');
 				elem.setAttribute('opacity', opacity);
 			}
-
-			imgs = document.getElementsByTagName('image');
-			imgUrls = [];
-
-			for (imgIndex = 0; imgIndex < imgs.length; imgIndex = imgIndex + 1) {
-				imgUrls.push(imgs[imgIndex].href.baseVal);
-			}
-
-			return {
-				html: document.getElementsByClassName('highcharts-container')[0].innerHTML,
-				width: chart.chartWidth,
-				height: chart.chartHeight,
-				imgUrls: imgUrls
-			};
 		};
 
 		/**
@@ -699,20 +745,7 @@
 					injectResources(resources);
 
 					// load chart in page and return svg height and width
-					svg = page.evaluate(createChart, constr, input, themeOptions, globalOptions, dataOptions, customCode, outType, callback, messages);
-
-					if (!window.optionsParsed) {
-						exitError('the options variable was not available or couldn\'t be parsed, does the infile contain an syntax error? Input used:' + input);
-					}
-
-					if (callback !== undefined && !window.callbackParsed) {
-						exitError('the callback variable was not available, does the callback contain an syntax error? Callback used: ' + callback);
-					}
-					if(typeof svg !== 'undefined' && svg !== null){
-						renderSVG(svg);
-					} else {
-						exitError('failed to render chart in page, svg is null.');
-					}
+					page.evaluate(createChart, constr, input, themeOptions, globalOptions, dataOptions, customCode, outType, callback, messages);
 				}
 			});
 		}
