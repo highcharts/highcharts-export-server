@@ -10,9 +10,14 @@
  * version: 2.0.1
  */
 
-/* global cb, clearInterval, clearTimeout, console, customCode,
-	dataOptions, document, globalOptions, Highcharts, Image, options, themeOptions
-	phantom, require, window */
+/* global
+	cb, clearInterval, clearTimeout, console, customCode, dataOptions, document,
+	globalOptions, Highcharts, Image, options:true, chart:true, themeOptions,
+	phantom, require, window
+*/
+/* exported
+	chart
+*/
 (function () {
 	'use strict';
 
@@ -101,19 +106,6 @@
 			counter,
 			imagesLoaded = false;
 
-		messages.optionsParsed = 'Highcharts.options.parsed';
-		messages.callbackParsed = 'Highcharts.cb.parsed';
-		messages.chartLoadCalled = 'Highcharts.load.called';
-
-		window.optionsParsed = false;
-		window.callbackParsed = false;
-
-		page.localToRemoteUrlAccessEnabled = true;
-		page.webSecurityEnabled = false;
-
-		// security measures, for not allowing loading iframes
-		page.navigationLocked = true;
-
 		function exit(result, error) {
 			if (serverMode) {
 				// Calling page.close(), may stop the increasing heap allocation
@@ -130,65 +122,6 @@
 		function exitError(result) {
 			exit('ERROR: ' + result, true);
 		}
-
-		page.onConsoleMessage = function (msg) {
-			console.log(msg);
-
-			// Listen for chart.load to be called before rendering SVG
-			if (msg === messages.chartLoadCalled) {
-				renderSVGWithImages();
-			}
-
-			/*
-			 * Ugly hack, but only way to get messages out of the 'page.evaluate()'
-			 * sandbox. If any, please contribute with improvements on this!
-			 */
-
-			/* to check options or callback are properly parsed */
-			if (msg === messages.optionsParsed) {
-				window.optionsParsed = true;
-			}
-
-			if (msg === messages.callbackParsed) {
-				window.callbackParsed = true;
-			}
-		};
-
-		page.externalResources = {};
-
-		page.onResourceError = function (resourceError) {
-			console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')');
-			console.log('Error code: ' + resourceError.errorCode + '. Description: ' + resourceError.errorString);
-		};
-
-		page.onResourceRequested = function (requestData) {
-			page.externalResources[requestData.url] = true; // true means loading
-			console.log('Requesting ' + requestData.url, '(Request #' + requestData.id + ')');
-		};
-
-		page.onResourceReceived = function (response) {
-			page.externalResources[response.url] = false; // false means not loading
-			console.log('Received ' + response.url, '(Response #' + response.id + ', stage "' + response.stage + '")');
-		};
-
-		page.onAlert = function (msg) {
-			console.log(msg);
-		};
-
-		page.onError = function (msg, trace) {
-			var msgStack = [msg];
-
-			if (trace && trace.length) {
-				msgStack.push('TRACE:');
-				trace.forEach(function (t) {
-					msgStack.push(' -> ' + t.file + ': ' + t.line + (t.function ? ' (in function "' + t.function + '")' : ''));
-				});
-			}
-
-			console.error(msgStack.join('\n'));
-
-			exitError(msg);
-		};
 
 		/* scale and clip the page */
 		function scaleAndClipPage(svg) {
@@ -712,6 +645,80 @@
 				}
 			}
 		}
+
+
+		messages.optionsParsed = 'Highcharts.options.parsed';
+		messages.callbackParsed = 'Highcharts.cb.parsed';
+		messages.chartLoadCalled = 'Highcharts.load.called';
+
+		window.optionsParsed = false;
+		window.callbackParsed = false;
+
+		page.localToRemoteUrlAccessEnabled = true;
+		page.webSecurityEnabled = false;
+
+		// security measures, for not allowing loading iframes
+		page.navigationLocked = true;
+
+
+		page.onConsoleMessage = function (msg) {
+			console.log(msg);
+
+			// Listen for chart.load to be called before rendering SVG
+			if (msg === messages.chartLoadCalled) {
+				renderSVGWithImages();
+			}
+
+			/*
+			 * Ugly hack, but only way to get messages out of the 'page.evaluate()'
+			 * sandbox. If any, please contribute with improvements on this!
+			 */
+
+			/* to check options or callback are properly parsed */
+			if (msg === messages.optionsParsed) {
+				window.optionsParsed = true;
+			}
+
+			if (msg === messages.callbackParsed) {
+				window.callbackParsed = true;
+			}
+		};
+
+		page.externalResources = {};
+
+		page.onResourceError = function (resourceError) {
+			console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')');
+			console.log('Error code: ' + resourceError.errorCode + '. Description: ' + resourceError.errorString);
+		};
+
+		page.onResourceRequested = function (requestData) {
+			page.externalResources[requestData.url] = true; // true means loading
+			console.log('Requesting ' + requestData.url, '(Request #' + requestData.id + ')');
+		};
+
+		page.onResourceReceived = function (response) {
+			page.externalResources[response.url] = false; // false means not loading
+			console.log('Received ' + response.url, '(Response #' + response.id + ', stage "' + response.stage + '")');
+		};
+
+		page.onAlert = function (msg) {
+			console.log(msg);
+		};
+
+		page.onError = function (msg, trace) {
+			var msgStack = [msg];
+
+			if (trace && trace.length) {
+				msgStack.push('TRACE:');
+				trace.forEach(function (t) {
+					msgStack.push(' -> ' + t.file + ': ' + t.line + (t.function ? ' (in function "' + t.function + '")' : ''));
+				});
+			}
+
+			console.error(msgStack.join('\n'));
+
+			exitError(msg);
+		};
 
 		if (params.length < 1) {
 			exitError('Insufficient parameters');
