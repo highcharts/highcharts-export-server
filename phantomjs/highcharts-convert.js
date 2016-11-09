@@ -162,9 +162,10 @@
 				height: clipheight
 			};
 
+			// redefine the viewport
+			page.viewportSize = { width: clipwidth, height: clipheight };
+
 			if (outType === 'pdf') {
-				// redefine the viewport
-				page.viewportSize = { width: clipwidth, height: clipheight };
 
 				// simulate zooming to get the right zoomFactor. Using page.zoomFactor doesn't work anymore, see issue here https://github.com/ariya/phantomjs/issues/12685
 				page.evaluate(function (zoom) {
