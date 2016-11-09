@@ -12,19 +12,14 @@
 
 /* global cb, clearInterval, clearTimeout, console, customCode,
 	dataOptions, document, globalOptions, Highcharts, Image, options, themeOptions
-	phantom, response, require, window */
+	phantom, require, window */
 (function () {
 	'use strict';
 
 	var config = {
 			TIMEOUT: 5000 /* 5 seconds timout for loading images */
 		},
-		mapCLArguments,
-		render,
-		startServer = false,
 		args,
-		pick,
-		extend,
 		SVG_DOCTYPE = '<?xml version=\"1.0" standalone=\"no\"?><!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">',
 		dpiCorrection = 1.0, // Correction factor for DPI scaling. Use if PDF export does not match page size (issue #4764).
 		// dpiCorrection = 72 / 96, // DPI correction setting for Windows
@@ -32,7 +27,7 @@
 		fs = require('fs'),
 		serverMode = false;
 
-	pick = function () {
+	function pick() {
 		var args = arguments, i, arg, length = args.length;
 		for (i = 0; i < length; i += 1) {
 			arg = args[i];
@@ -40,7 +35,7 @@
 				return arg;
 			}
 		}
-	};
+	}
 
 	/*
 	 * Extend an object with the members of another
@@ -48,7 +43,7 @@
 	 * @param {Object} b The object to add to the first one
 	 * @returns {Object}
 	 */
-	extend = function (a, b) {
+	function extend(a, b) {
 		var n;
 		if (!a) {
 			a = {};
@@ -60,9 +55,9 @@
 			}
 		}
 		return a;
-	};
+	}
 
-	mapCLArguments = function () {
+	function mapCLArguments() {
 		var map = {},
 			i,
 			key;
@@ -90,29 +85,18 @@
 			}
 		}
 		return map;
-	};
+	}
 
-	render = function (params, exitCallback, exitErrorCallback) {
+	function render(params, exitCallback, exitErrorCallback) {
 
 		var page = require('webpage').create(),
 			messages = {},
-			scaleAndClipPage,
-			loadChart,
-			createChart,
-			appendStyleElement,
-			appendScriptElement,
-			injectResources,
-			injectResource,
 			input,
 			constr,
 			callback,
 			output,
 			outType,
 			timer,
-			renderSVG,
-			convert,
-			exit,
-			exitError,
 			interval,
 			counter,
 			imagesLoaded = false;
@@ -124,47 +108,30 @@
 		window.optionsParsed = false;
 		window.callbackParsed = false;
 
+		page.localToRemoteUrlAccessEnabled = true;
+		page.webSecurityEnabled = false;
+
 		// security measures, for not allowing loading iframes
 		page.navigationLocked = true;
 
-		function renderSVGWithImages() {
-			var svg = page.evaluate(function () {
-				var imgs,
-					imgUrls,
-					imgIndex;
-
-				imgs = document.getElementsByTagName('image');
-
-				imgUrls = [];
-
-				for (imgIndex = 0; imgIndex < imgs.length; imgIndex = imgIndex + 1) {
-					imgUrls.push(imgs[imgIndex].href.baseVal);
-				}
-
-				return {
-					html: document.getElementsByClassName('highcharts-container')[0].innerHTML,
-					width: options.chart.width,
-					height: options.chart.height,
-					imgUrls: imgUrls
-				};
-			});
-
-			if (!window.optionsParsed) {
-				exitError('the options variable was not available or couldn\'t be parsed, does the infile contain an syntax error? Input used:' + input);
+		function exit(result, error) {
+			if (serverMode) {
+				// Calling page.close(), may stop the increasing heap allocation
+				page.close();
 			}
-
-			if (callback !== undefined && !window.callbackParsed) {
-				exitError('the callback variable was not available, does the callback contain an syntax error? Callback used: ' + callback);
-			}
-			if(typeof svg !== 'undefined' && svg !== null){
-				renderSVG(svg);
-			} else {
-				exitError('failed to render chart in page, svg is null.');
+			console.log('Exited with message \'' + result + '\'');
+			if (error !== true && exitCallback !== null) {
+				exitCallback(result);
+			} else if (error === true && exitErrorCallback !== null) {
+				exitErrorCallback(result);
 			}
 		}
 
+		function exitError(result) {
+			exit('ERROR: ' + result, true);
+		}
+
 		page.onConsoleMessage = function (msg) {
-			var svg;
 			console.log(msg);
 
 			// Listen for chart.load to be called before rendering SVG
@@ -187,6 +154,23 @@
 			}
 		};
 
+		page.externalResources = {};
+
+		page.onResourceError = function (resourceError) {
+			console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')');
+			console.log('Error code: ' + resourceError.errorCode + '. Description: ' + resourceError.errorString);
+		};
+
+		page.onResourceRequested = function (requestData) {
+			page.externalResources[requestData.url] = true; // true means loading
+			console.log('Requesting ' + requestData.url, '(Request #' + requestData.id + ')');
+		};
+
+		page.onResourceReceived = function (response) {
+			page.externalResources[response.url] = false; // false means not loading
+			console.log('Received ' + response.url, '(Response #' + response.id + ', stage "' + response.stage + '")');
+		};
+
 		page.onAlert = function (msg) {
 			console.log(msg);
 		};
@@ -207,7 +191,7 @@
 		};
 
 		/* scale and clip the page */
-		scaleAndClipPage = function (svg) {
+		function scaleAndClipPage(svg) {
 			/*	param: svg: The scg configuration object
 			*/
 
@@ -259,47 +243,56 @@
 
 				page.paperSize = { width: clipwidth * dpiCorrection, height: clipheight * dpiCorrection };
 			}
-		};
+		}
 
-		exit = function (result, error) {
-			if (serverMode) {
-				// Calling page.close(), may stop the increasing heap allocation
-				page.close();
-			}
-			console.log('Exited with message \'' + result + '\'');
-			if (error !== true && exitCallback !== null) {
-				exitCallback(result);
-			} else if (error === true && exitErrorCallback !== null) {
-				exitErrorCallback(result);
-			}
-		};
-
-		exitError = function (result) {
-			exit('ERROR: ' + result, true);
-		};
-
-		convert = function (svg) {
-			var base64;
+		function convert(svg) {
+			var base64,
+				interval,
+				timer,
+				resourcesLoaded = false,
+				resource;
 			scaleAndClipPage(svg);
-			if (outType === 'pdf' || output !== undefined || !serverMode) {
-				if (output === undefined) {
-					// in case of pdf files
-					output = 'chart.' + outType;
-				}
 
-				if (config.tmpDir) {
-					// assume only output is a filename, not a path.
-					page.render(config.tmpDir + '/' + output);
-				} else {
-					page.render(output);
+			// render with interval, waiting for all images loaded
+			interval = window.setInterval(function () {
+				resourcesLoaded = true;
+				for (resource in page.externalResources) {
+					if (page.externalResources.hasOwnProperty(resource)) {
+						if (page.externalResources[resource] === true) {
+							resourcesLoaded = false;
+						}
+					}
 				}
+				if (resourcesLoaded) {
+					clearTimeout(timer);
+					clearInterval(interval);
+					if (outType === 'pdf' || output !== undefined || !serverMode) {
+						if (output === undefined) {
+							// in case of pdf files
+							output = 'chart.' + outType;
+						}
 
-				exit(output);
-			} else {
-				base64 = page.renderBase64(outType);
-				exit(base64);
-			}
-		};
+						if (config.tmpDir) {
+							// assume only output is a filename, not a path.
+							page.render(config.tmpDir + '/' + output);
+						} else {
+							page.render(output);
+						}
+
+						exit(output);
+					} else {
+						base64 = page.renderBase64(outType);
+						exit(base64);
+					}
+				}
+			}, 50);
+
+			// we have a 5 second timeframe..
+			timer = window.setTimeout(function () {
+				clearInterval(interval);
+				exitError('While rendering, there\'s is a timeout reached');
+			}, config.TIMEOUT);
+		}
 
 		function decrementImgCounter() {
 			counter -= 1;
@@ -320,7 +313,7 @@
 			}
 		}
 
-		renderSVG = function (svg) {
+		function renderSVG(svg) {
 			var svgFile;
 			// From this point we have 'loaded' or 'created' a SVG
 
@@ -378,9 +371,45 @@
 			} catch (e) {
 				exitError('While rendering, ' + e);
 			}
-		};
+		}
 
-		loadChart = function (input, outputType) {
+		function renderSVGWithImages() {
+			var svg = page.evaluate(function () {
+				var imgs,
+					imgUrls,
+					imgIndex;
+
+				imgs = document.getElementsByTagName('image');
+
+				imgUrls = [];
+
+				for (imgIndex = 0; imgIndex < imgs.length; imgIndex = imgIndex + 1) {
+					imgUrls.push(imgs[imgIndex].href.baseVal);
+				}
+
+				return {
+					html: document.getElementsByClassName('highcharts-container')[0].innerHTML,
+					width: options.chart.width,
+					height: options.chart.height,
+					imgUrls: imgUrls
+				};
+			});
+
+			if (!window.optionsParsed) {
+				exitError('the options variable was not available or couldn\'t be parsed, does the infile contain an syntax error? Input used:' + input);
+			}
+
+			if (callback !== undefined && !window.callbackParsed) {
+				exitError('the callback variable was not available, does the callback contain an syntax error? Callback used: ' + callback);
+			}
+			if(typeof svg !== 'undefined' && svg !== null) {
+				renderSVG(svg);
+			} else {
+				exitError('failed to render chart in page, svg is null.');
+			}
+		}
+
+		function loadChart(input, outputType) {
 			var nodeIter, nodes, elem, opacity, svgElem, imgs, imgUrls, imgIndex, foreignObjectElem, bodyElem;
 
 			document.body.style.margin = '0px';
@@ -427,11 +456,11 @@
 				height: svgElem.getAttribute('height'),
 				imgUrls: imgUrls
 			};
-		};
+		}
 
-		createChart = function (constr, input, themeOptionsArg, globalOptionsArg, dataOptionsArg, customCodeArg, outputType, callback, messages) {
+		function createChart(constr, input, themeOptionsArg, globalOptionsArg, dataOptionsArg, customCodeArg, outputType, callback, messages) {
 
-			var container, chart, nodes, nodeIter, elem, opacity, imgIndex, imgs, imgUrls, userLoadCallback;
+			var container, nodes, nodeIter, elem, opacity, userLoadCallback;
 
 			// dynamic script insertion
 			function loadScript(varName, code) {
@@ -532,7 +561,7 @@
 					userLoadCallback(event);
 				}
 				console.log(messages.chartLoadCalled);
-			}
+			};
 
 
 			if (globalOptions) {
@@ -556,11 +585,11 @@
 						customCode(mergedOptions);
 					}
 
-					chart = new Highcharts[constr](mergedOptions, cb);
+					Highcharts[constr](mergedOptions, cb);
 
 				}, options, dataOptions);
 			} else {
-				chart = new Highcharts[constr](options, cb);
+				Highcharts[constr](options, cb);
 			}
 
 			/* remove stroke-opacity paths, used by mouse-trackers, they turn up as
@@ -574,24 +603,45 @@
 				elem.removeAttribute('stroke-opacity');
 				elem.setAttribute('opacity', opacity);
 			}
-		};
+		}
 
 		/**
 		 * @param {String} css - the css content to be inserted in a style tag placed in body element
 		 * @returns {undefined}
 		 */
-		appendStyleElement = function (css) {
+		function appendStyleElement(css) {
 			var elem = document.createElement('style');
 			elem.type = 'text/css';
+
+			function insertCSSImports(css, head) {
+				var imports = css.match(/@import\s*('[^']*'|url\([^)]*\));/g),
+					match,
+					url,
+					link,
+					i;
+				for (i = 0; i < imports.length; i++) {
+					match = imports[i];
+					url = match.replace(/@import\s*('([^']*)'|url\(([^)]*)\));/g, '$2$3');
+					url = url.replace(/'/g, '');
+					link = document.createElement('link');
+					link.rel = 'stylesheet';
+					link.type = 'text/css';
+					link.href = url;
+					head.appendChild(link);
+				}
+				return css.replace(/@import\s*('[^']*'|url\([^)]*\));/g, '');
+			}
+			css = insertCSSImports(css, document.head);
+
 			elem.innerHTML = css;
-			document.body.appendChild(elem);
-		};
+			document.head.appendChild(elem);
+		}
 
 		/**
 		 * @param {String} js - the javascript content to be inserted in a script tag placed in body element
 		 * @returns {undefined}
 		 */
-		appendScriptElement = function (js) {
+		function appendScriptElement(js) {
 			var script = document.createElement('script');
 			script.type = 'text/javascript';
 			script.charset = 'utf-8';
@@ -599,7 +649,7 @@
 			script.async = true;
 			script.text = js;
 			document.body.appendChild(script);
-		};
+		}
 
 
 		/**
@@ -608,7 +658,7 @@
 		 * @param {String} resource - the content of the resource
 		 * @returns {undefined}
 		 */
-		injectResource = function (type, resource) {
+		function injectResource(type, resource) {
 			if (type === 'js') {
 				page.evaluate(appendScriptElement, resource);
 			}
@@ -616,13 +666,13 @@
 			if (type === 'css') {
 				page.evaluate(appendStyleElement, resource);
 			}
-		};
+		}
 
 		/*
 		 * Process a json file where resources are specified by key.
 		 * @param {Object} resources - an object with the folowing keys: files,js, css
 		 */
-		injectResources = function (resources) {
+		function injectResources(resources) {
 			var key,
 				fileName,
 				fileIdx,
@@ -662,12 +712,12 @@
 					}
 				}
 			}
-		};
+		}
 
 		if (params.length < 1) {
 			exitError('Insufficient parameters');
 		} else {
-		    	if (params.infile === undefined || params.infile.length === 0) {
+			if (params.infile === undefined || params.infile.length === 0) {
 				input = params.options;
 			} else {
 				input = params.infile;
@@ -749,9 +799,9 @@
 				}
 			});
 		}
-	};
+	}
 
-	startServer = function (host, port) {
+	function startServer(host, port) {
 		var server = require('webserver').create();
 
 
@@ -794,7 +844,7 @@
 		serverMode = true;
 
 		console.log('OK, PhantomJS is ready.');
-	};
+	}
 
 	args = mapCLArguments();
 
