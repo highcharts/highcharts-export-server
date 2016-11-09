@@ -101,8 +101,6 @@
 			callback,
 			output,
 			outType,
-			timer,
-			interval,
 			counter,
 			imagesLoaded = false;
 
@@ -177,9 +175,29 @@
 			}
 		}
 
+		function renderAndExit(svg) {
+			scaleAndClipPage(svg);
+			if (outType === 'pdf' || output !== undefined || !serverMode) {
+				if (output === undefined) {
+					// in case of pdf files
+					output = 'chart.' + outType;
+				}
+
+				if (config.tmpDir) {
+					// assume only output is a filename, not a path.
+					page.render(config.tmpDir + '/' + output);
+				} else {
+					page.render(output);
+				}
+
+				exit(output);
+			} else {
+				exit(page.renderBase64(outType));
+			}
+		}
+
 		function convert(svg) {
-			var base64,
-				interval,
+			var interval,
 				timer,
 				resourcesLoaded = false,
 				resource;
@@ -197,25 +215,7 @@
 				if (resourcesLoaded) {
 					clearTimeout(timer);
 					clearInterval(interval);
-					scaleAndClipPage(svg);
-					if (outType === 'pdf' || output !== undefined || !serverMode) {
-						if (output === undefined) {
-							// in case of pdf files
-							output = 'chart.' + outType;
-						}
-
-						if (config.tmpDir) {
-							// assume only output is a filename, not a path.
-							page.render(config.tmpDir + '/' + output);
-						} else {
-							page.render(output);
-						}
-
-						exit(output);
-					} else {
-						base64 = page.renderBase64(outType);
-						exit(base64);
-					}
+					renderAndExit(svg);
 				}
 			}, 50);
 
@@ -245,7 +245,9 @@
 		}
 
 		function renderSVG(svg) {
-			var svgFile;
+			var svgFile,
+				interval,
+				timer;
 			// From this point we have 'loaded' or 'created' a SVG
 
 			// Do we have to load images?
