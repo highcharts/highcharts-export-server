@@ -219,7 +219,6 @@
 					bodyElem.setAttribute('style', '-webkit-transform: scale(' + zoom + '); -webkit-transform-origin: 0 0 !important');
 				}
 			}, page.zoomFactor);
-
 			clipwidth = svg.width * page.zoomFactor;
 			clipheight = svg.height * page.zoomFactor;
 
@@ -251,7 +250,6 @@
 				timer,
 				resourcesLoaded = false,
 				resource;
-			scaleAndClipPage(svg);
 
 			// render with interval, waiting for all images loaded
 			interval = window.setInterval(function () {
@@ -266,6 +264,7 @@
 				if (resourcesLoaded) {
 					clearTimeout(timer);
 					clearInterval(interval);
+					scaleAndClipPage(svg);
 					if (outType === 'pdf' || output !== undefined || !serverMode) {
 						if (output === undefined) {
 							// in case of pdf files
@@ -287,10 +286,9 @@
 				}
 			}, 50);
 
-			// we have a 5 second timeframe..
 			timer = window.setTimeout(function () {
 				clearInterval(interval);
-				exitError('While rendering, there\'s is a timeout reached');
+				exitError('Timeout reached while downloading external resources. Remaining resources: ' + JSON.stringify(page.externalResources));
 			}, config.TIMEOUT);
 		}
 
@@ -585,11 +583,11 @@
 						customCode(mergedOptions);
 					}
 
-					Highcharts[constr](mergedOptions, cb);
+					chart = new Highcharts[constr](mergedOptions, cb);
 
 				}, options, dataOptions);
 			} else {
-				Highcharts[constr](options, cb);
+				chart = new Highcharts[constr](options, cb);
 			}
 
 			/* remove stroke-opacity paths, used by mouse-trackers, they turn up as
@@ -614,14 +612,15 @@
 			elem.type = 'text/css';
 
 			function insertCSSImports(css, head) {
-				var imports = css.match(/@import\s*('[^']*'|url\([^)]*\));/g),
+				var importRegex = /@import\s*('([^']*)'|url\(([^)]*)\));/g,
+					imports = css.match(importRegex),
 					match,
 					url,
 					link,
 					i;
 				for (i = 0; i < imports.length; i++) {
 					match = imports[i];
-					url = match.replace(/@import\s*('([^']*)'|url\(([^)]*)\));/g, '$2$3');
+					url = match.replace(importRegex, '$2$3');
 					url = url.replace(/'/g, '');
 					link = document.createElement('link');
 					link.rel = 'stylesheet';
@@ -629,7 +628,7 @@
 					link.href = url;
 					head.appendChild(link);
 				}
-				return css.replace(/@import\s*('[^']*'|url\([^)]*\));/g, '');
+				return css.replace(importRegex, '');
 			}
 			css = insertCSSImports(css, document.head);
 
