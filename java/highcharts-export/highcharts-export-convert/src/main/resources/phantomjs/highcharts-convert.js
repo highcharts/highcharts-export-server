@@ -10,21 +10,21 @@
  * version: 2.0.1
  */
 
-/* global cb, clearInterval, clearTimeout, console, customCode,
-	dataOptions, document, globalOptions, Highcharts, Image, options, themeOptions
-	phantom, response, require, window */
+/* global
+	cb, clearInterval, clearTimeout, console, customCode, dataOptions,
+	document:true, DOMParser, globalOptions, Highcharts, Image, options:true,
+	chart:true, themeOptions, phantom, require, window, XMLSerializer
+*/
+/* exported
+	chart
+*/
 (function () {
 	'use strict';
 
 	var config = {
 			TIMEOUT: 5000 /* 5 seconds timout for loading images */
 		},
-		mapCLArguments,
-		render,
-		startServer = false,
 		args,
-		pick,
-		extend,
 		SVG_DOCTYPE = '<?xml version=\"1.0" standalone=\"no\"?><!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">',
 		dpiCorrection = 1.0, // Correction factor for DPI scaling. Use if PDF export does not match page size (issue #4764).
 		// dpiCorrection = 72 / 96, // DPI correction setting for Windows
@@ -32,7 +32,7 @@
 		fs = require('fs'),
 		serverMode = false;
 
-	pick = function () {
+	function pick() {
 		var args = arguments, i, arg, length = args.length;
 		for (i = 0; i < length; i += 1) {
 			arg = args[i];
@@ -40,7 +40,7 @@
 				return arg;
 			}
 		}
-	};
+	}
 
 	/*
 	 * Extend an object with the members of another
@@ -48,7 +48,7 @@
 	 * @param {Object} b The object to add to the first one
 	 * @returns {Object}
 	 */
-	extend = function (a, b) {
+	function extend(a, b) {
 		var n;
 		if (!a) {
 			a = {};
@@ -60,9 +60,9 @@
 			}
 		}
 		return a;
-	};
+	}
 
-	mapCLArguments = function () {
+	function mapCLArguments() {
 		var map = {},
 			i,
 			key;
@@ -90,124 +90,39 @@
 			}
 		}
 		return map;
-	};
+	}
 
-	render = function (params, exitCallback, exitErrorCallback) {
+	function render(params, exitCallback, exitErrorCallback) {
 
 		var page = require('webpage').create(),
 			messages = {},
-			scaleAndClipPage,
-			loadChart,
-			createChart,
-			appendStyleElement,
-			appendScriptElement,
-			injectResources,
-			injectResource,
 			input,
 			constr,
 			callback,
 			output,
 			outType,
-			timer,
-			renderSVG,
-			convert,
-			exit,
-			exitError,
-			interval,
 			counter,
 			imagesLoaded = false;
 
-		messages.optionsParsed = 'Highcharts.options.parsed';
-		messages.callbackParsed = 'Highcharts.cb.parsed';
-		messages.chartLoadCalled = 'Highcharts.load.called';
-
-		window.optionsParsed = false;
-		window.callbackParsed = false;
-
-		// security measures, for not allowing loading iframes
-		page.navigationLocked = true;
-
-		function renderSVGWithImages() {
-			var svg = page.evaluate(function () {
-				var imgs,
-					imgUrls,
-					imgIndex;
-
-				imgs = document.getElementsByTagName('image');
-
-				imgUrls = [];
-
-				for (imgIndex = 0; imgIndex < imgs.length; imgIndex = imgIndex + 1) {
-					imgUrls.push(imgs[imgIndex].href.baseVal);
-				}
-
-				return {
-					html: document.getElementsByClassName('highcharts-container')[0].innerHTML,
-					width: options.chart.width,
-					height: options.chart.height,
-					imgUrls: imgUrls
-				};
-			});
-
-			if (!window.optionsParsed) {
-				exitError('the options variable was not available or couldn\'t be parsed, does the infile contain an syntax error? Input used:' + input);
+		function exit(result, error) {
+			if (serverMode) {
+				// Calling page.close(), may stop the increasing heap allocation
+				page.close();
 			}
-
-			if (callback !== undefined && !window.callbackParsed) {
-				exitError('the callback variable was not available, does the callback contain an syntax error? Callback used: ' + callback);
-			}
-			if(typeof svg !== 'undefined' && svg !== null){
-				renderSVG(svg);
-			} else {
-				exitError('failed to render chart in page, svg is null.');
+			console.log('Exited with message \'' + result + '\'');
+			if (error !== true && exitCallback !== null) {
+				exitCallback(result);
+			} else if (error === true && exitErrorCallback !== null) {
+				exitErrorCallback(result);
 			}
 		}
 
-		page.onConsoleMessage = function (msg) {
-			var svg;
-			console.log(msg);
-
-			// Listen for chart.load to be called before rendering SVG
-			if (msg === messages.chartLoadCalled) {
-				renderSVGWithImages();
-			}
-
-			/*
-			 * Ugly hack, but only way to get messages out of the 'page.evaluate()'
-			 * sandbox. If any, please contribute with improvements on this!
-			 */
-
-			/* to check options or callback are properly parsed */
-			if (msg === messages.optionsParsed) {
-				window.optionsParsed = true;
-			}
-
-			if (msg === messages.callbackParsed) {
-				window.callbackParsed = true;
-			}
-		};
-
-		page.onAlert = function (msg) {
-			console.log(msg);
-		};
-
-		page.onError = function (msg, trace) {
-			var msgStack = [msg];
-
-			if (trace && trace.length) {
-				msgStack.push('TRACE:');
-				trace.forEach(function (t) {
-					msgStack.push(' -> ' + t.file + ': ' + t.line + (t.function ? ' (in function "' + t.function + '")' : ''));
-				});
-			}
-
-			console.error(msgStack.join('\n'));
-
-			exitError(msg);
-		};
+		function exitError(result) {
+			exit('ERROR: ' + result, true);
+		}
 
 		/* scale and clip the page */
-		scaleAndClipPage = function (svg) {
+		function scaleAndClipPage(svg) {
 			/*	param: svg: The scg configuration object
 			*/
 
@@ -235,7 +150,6 @@
 					bodyElem.setAttribute('style', '-webkit-transform: scale(' + zoom + '); -webkit-transform-origin: 0 0 !important');
 				}
 			}, page.zoomFactor);
-
 			clipwidth = svg.width * page.zoomFactor;
 			clipheight = svg.height * page.zoomFactor;
 
@@ -248,9 +162,10 @@
 				height: clipheight
 			};
 
+			// redefine the viewport
+			page.viewportSize = { width: clipwidth, height: clipheight };
+
 			if (outType === 'pdf') {
-				// redefine the viewport
-				page.viewportSize = { width: clipwidth, height: clipheight };
 
 				// simulate zooming to get the right zoomFactor. Using page.zoomFactor doesn't work anymore, see issue here https://github.com/ariya/phantomjs/issues/12685
 				page.evaluate(function (zoom) {
@@ -259,27 +174,9 @@
 
 				page.paperSize = { width: clipwidth * dpiCorrection, height: clipheight * dpiCorrection };
 			}
-		};
+		}
 
-		exit = function (result, error) {
-			if (serverMode) {
-				// Calling page.close(), may stop the increasing heap allocation
-				page.close();
-			}
-			console.log('Exited with message \'' + result + '\'');
-			if (error !== true && exitCallback !== null) {
-				exitCallback(result);
-			} else if (error === true && exitErrorCallback !== null) {
-				exitErrorCallback(result);
-			}
-		};
-
-		exitError = function (result) {
-			exit('ERROR: ' + result, true);
-		};
-
-		convert = function (svg) {
-			var base64;
+		function renderAndExit(svg) {
 			scaleAndClipPage(svg);
 			if (outType === 'pdf' || output !== undefined || !serverMode) {
 				if (output === undefined) {
@@ -296,10 +193,38 @@
 
 				exit(output);
 			} else {
-				base64 = page.renderBase64(outType);
-				exit(base64);
+				exit(page.renderBase64(outType));
 			}
-		};
+		}
+
+		function convert(svg) {
+			var interval,
+				timer,
+				resourcesLoaded = false,
+				resource;
+
+			// render with interval, waiting for all images loaded
+			interval = window.setInterval(function () {
+				resourcesLoaded = true;
+				for (resource in page.externalResources) {
+					if (page.externalResources.hasOwnProperty(resource)) {
+						if (page.externalResources[resource] === true) {
+							resourcesLoaded = false;
+						}
+					}
+				}
+				if (resourcesLoaded) {
+					clearTimeout(timer);
+					clearInterval(interval);
+					renderAndExit(svg);
+				}
+			}, 50);
+
+			timer = window.setTimeout(function () {
+				clearInterval(interval);
+				exitError('Timeout reached while downloading external resources. Remaining resources: ' + JSON.stringify(page.externalResources));
+			}, config.TIMEOUT);
+		}
 
 		function decrementImgCounter() {
 			counter -= 1;
@@ -320,8 +245,15 @@
 			}
 		}
 
-		renderSVG = function (svg) {
-			var svgFile;
+		function renderSVG(svg) {
+			var svgFile,
+				svgDoc,
+				interval,
+				cssStrings = svg.cssStrings,
+				cssString,
+				styleElement,
+				i,
+				timer;
 			// From this point we have 'loaded' or 'created' a SVG
 
 			// Do we have to load images?
@@ -338,6 +270,19 @@
 					svg = svg.html.replace(/<svg (?!xmlns:xlink)/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink" ').replace(/ href=/g, ' xlink:href=').replace(/<\/svg>.*?$/, '</svg>');
 					// add xml doc type
 					svg = SVG_DOCTYPE + svg;
+
+					// Re-add css link-elements
+					if (cssStrings && cssStrings.length) {
+						svgDoc = new DOMParser().parseFromString(svg, 'image/svg+xml');
+						for (i = 0; i < cssStrings.length; i++) {
+							cssString = cssStrings[i];
+							styleElement = svgDoc.createElementNS('http://www.w3.org/1999/xhtml', 'style');
+							styleElement.innerHTML = cssString;
+							svgDoc.getElementsByTagName('defs')[0].appendChild(styleElement);
+						}
+						svg = new XMLSerializer().serializeToString(svgDoc);
+					}
+
 
 					if (output !== undefined) {
 						// write the file
@@ -378,9 +323,46 @@
 			} catch (e) {
 				exitError('While rendering, ' + e);
 			}
-		};
+		}
 
-		loadChart = function (input, outputType) {
+		function renderSVGWithImages() {
+			var svg = page.evaluate(function () {
+				var imgs,
+					imgUrls,
+					imgIndex;
+
+				imgs = document.getElementsByTagName('image');
+
+				imgUrls = [];
+
+				for (imgIndex = 0; imgIndex < imgs.length; imgIndex = imgIndex + 1) {
+					imgUrls.push(imgs[imgIndex].href.baseVal);
+				}
+
+				return {
+					html: document.getElementsByClassName('highcharts-container')[0].innerHTML,
+					width: options.chart.width,
+					height: options.chart.height,
+					imgUrls: imgUrls,
+					cssStrings: document.cssStrings
+				};
+			});
+
+			if (!window.optionsParsed) {
+				exitError('the options variable was not available or couldn\'t be parsed, does the infile contain an syntax error? Input used:' + input);
+			}
+
+			if (callback !== undefined && !window.callbackParsed) {
+				exitError('the callback variable was not available, does the callback contain an syntax error? Callback used: ' + callback);
+			}
+			if(typeof svg !== 'undefined' && svg !== null) {
+				renderSVG(svg);
+			} else {
+				exitError('failed to render chart in page, svg is null.');
+			}
+		}
+
+		function loadChart(input, outputType) {
 			var nodeIter, nodes, elem, opacity, svgElem, imgs, imgUrls, imgIndex, foreignObjectElem, bodyElem;
 
 			document.body.style.margin = '0px';
@@ -427,11 +409,11 @@
 				height: svgElem.getAttribute('height'),
 				imgUrls: imgUrls
 			};
-		};
+		}
 
-		createChart = function (constr, input, themeOptionsArg, globalOptionsArg, dataOptionsArg, customCodeArg, outputType, callback, messages) {
+		function createChart(constr, input, themeOptionsArg, globalOptionsArg, dataOptionsArg, customCodeArg, outputType, callback, messages) {
 
-			var container, chart, nodes, nodeIter, elem, opacity, imgIndex, imgs, imgUrls, userLoadCallback;
+			var container, nodes, nodeIter, elem, opacity, userLoadCallback;
 
 			// dynamic script insertion
 			function loadScript(varName, code) {
@@ -532,7 +514,7 @@
 					userLoadCallback(event);
 				}
 				console.log(messages.chartLoadCalled);
-			}
+			};
 
 
 			if (globalOptions) {
@@ -574,24 +556,62 @@
 				elem.removeAttribute('stroke-opacity');
 				elem.setAttribute('opacity', opacity);
 			}
-		};
+		}
 
 		/**
 		 * @param {String} css - the css content to be inserted in a style tag placed in body element
+		 * @param {Boolean} svg - whether or not the output type is svg
 		 * @returns {undefined}
 		 */
-		appendStyleElement = function (css) {
-			var elem = document.createElement('style');
-			elem.type = 'text/css';
-			elem.innerHTML = css;
-			document.body.appendChild(elem);
-		};
+		function appendStyleElement(css, svg) {
+			var elem;
+
+			if (document.cssStrings === undefined) {
+				document.cssStrings = [];
+			}
+
+			function insertCSSImports(css, head) {
+				var importRegex = /@import\s*('([^']*)'|url\(([^)]*)\));/g,
+					imports = css.match(importRegex),
+					match,
+					url,
+					link,
+					i;
+				if (imports && imports.length) {
+					for (i = 0; i < imports.length; i++) {
+						match = imports[i];
+						url = match.replace(importRegex, '$2$3');
+						url = url.replace(/'/g, '');
+						link = document.createElement('link');
+						link.rel = 'stylesheet';
+						link.type = 'text/css';
+						link.href = url;
+						head.appendChild(link);
+					}
+				}
+				return css.replace(importRegex, '');
+			}
+
+			if (svg) {
+				// If there are @imports, SVG can handle them
+				document.cssStrings.push(css);
+			} else {
+				// Extract and insert imports to head (PhantomJS does not
+				// support @imports).
+				css = insertCSSImports(css, document.head);
+				elem = document.createElement('style');
+				elem.type = 'text/css';
+				elem.innerHTML = css;
+				document.head.appendChild(elem);
+			}
+
+		}
 
 		/**
 		 * @param {String} js - the javascript content to be inserted in a script tag placed in body element
 		 * @returns {undefined}
 		 */
-		appendScriptElement = function (js) {
+		function appendScriptElement(js) {
 			var script = document.createElement('script');
 			script.type = 'text/javascript';
 			script.charset = 'utf-8';
@@ -599,33 +619,38 @@
 			script.async = true;
 			script.text = js;
 			document.body.appendChild(script);
-		};
+		}
 
 
 		/**
 		 * In ject or append files, content for javascript tags or style tags
 		 * @param {String} type - indicating the type of resource, of type: file, css or js
 		 * @param {String} resource - the content of the resource
+		 * @param {Boolean} svg - whether or not the output type is svg
 		 * @returns {undefined}
 		 */
-		injectResource = function (type, resource) {
+		function injectResource(type, resource, svg) {
 			if (type === 'js') {
 				page.evaluate(appendScriptElement, resource);
 			}
 			// css or js file content is directly specfied on the property // instead of using filenames.
 			if (type === 'css') {
-				page.evaluate(appendStyleElement, resource);
+				page.evaluate(appendStyleElement, resource, svg);
 			}
-		};
+		}
 
-		/*
+		/**
 		 * Process a json file where resources are specified by key.
-		 * @param {Object} resources - an object with the folowing keys: files,js, css
+		 * @param {Object} resources - an object with the folowing keys: files,
+		 *                           js, css
+		 * @param {String} outType - the type of output, e.g. 'svg'
+		 * @returns {undefined}
 		 */
-		injectResources = function (resources) {
+		function injectResources(resources, outType) {
 			var key,
 				fileName,
 				fileIdx,
+				svg = outType.toLowerCase() === 'svg',
 				extension;
 
 			for (key in resources) {
@@ -652,7 +677,7 @@
 
 							if (fs.exists(fileName) && extension === 'css') {
 								// for js or css placed between tags
-								injectResource('css', fs.read(fileName));
+								injectResource('css', fs.read(fileName), svg);
 							}
 						}
 					}
@@ -662,12 +687,88 @@
 					}
 				}
 			}
+		}
+
+
+		messages.optionsParsed = 'Highcharts.options.parsed';
+		messages.callbackParsed = 'Highcharts.cb.parsed';
+		messages.chartLoadCalled = 'Highcharts.load.called';
+
+		window.optionsParsed = false;
+		window.callbackParsed = false;
+
+		page.localToRemoteUrlAccessEnabled = true;
+		page.webSecurityEnabled = false;
+
+		// security measures, for not allowing loading iframes
+		page.navigationLocked = true;
+
+
+		page.onConsoleMessage = function (msg) {
+			console.log(msg);
+
+			// Listen for chart.load to be called before rendering SVG
+			if (msg === messages.chartLoadCalled) {
+				renderSVGWithImages();
+			}
+
+			/*
+			 * Ugly hack, but only way to get messages out of the 'page.evaluate()'
+			 * sandbox. If any, please contribute with improvements on this!
+			 */
+
+			/* to check options or callback are properly parsed */
+			if (msg === messages.optionsParsed) {
+				window.optionsParsed = true;
+			}
+
+			if (msg === messages.callbackParsed) {
+				window.callbackParsed = true;
+			}
+		};
+
+		page.externalResources = {};
+
+		page.onResourceError = function (resourceError) {
+			console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')');
+			console.log('Error code: ' + resourceError.errorCode + '. Description: ' + resourceError.errorString);
+		};
+
+		page.onResourceRequested = function (requestData) {
+			page.externalResources[requestData.url] = true; // true means loading
+			console.log('Requesting ' + requestData.url, '(Request #' + requestData.id + ')');
+		};
+
+		page.onResourceReceived = function (response) {
+			if (response.stage === 'end') {
+				page.externalResources[response.url] = false; // false means not loading
+			}
+			console.log('Received ' + response.url, '(Response #' + response.id + ', stage "' + response.stage + '")');
+		};
+
+		page.onAlert = function (msg) {
+			console.log(msg);
+		};
+
+		page.onError = function (msg, trace) {
+			var msgStack = [msg];
+
+			if (trace && trace.length) {
+				msgStack.push('TRACE:');
+				trace.forEach(function (t) {
+					msgStack.push(' -> ' + t.file + ': ' + t.line + (t.function ? ' (in function "' + t.function + '")' : ''));
+				});
+			}
+
+			console.error(msgStack.join('\n'));
+
+			exitError(msg);
 		};
 
 		if (params.length < 1) {
 			exitError('Insufficient parameters');
 		} else {
-		    	if (params.infile === undefined || params.infile.length === 0) {
+			if (params.infile === undefined || params.infile.length === 0) {
 				input = params.options;
 			} else {
 				input = params.infile;
@@ -742,16 +843,18 @@
 						}
 					}
 
-					injectResources(resources);
+					injectResources(resources, outType);
+
+					page.resources = resources;
 
 					// load chart in page and return svg height and width
 					page.evaluate(createChart, constr, input, themeOptions, globalOptions, dataOptions, customCode, outType, callback, messages);
 				}
 			});
 		}
-	};
+	}
 
-	startServer = function (host, port) {
+	function startServer(host, port) {
 		var server = require('webserver').create();
 
 
@@ -794,7 +897,7 @@
 		serverMode = true;
 
 		console.log('OK, PhantomJS is ready.');
-	};
+	}
 
 	args = mapCLArguments();
 
