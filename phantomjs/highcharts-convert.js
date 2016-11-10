@@ -11,9 +11,9 @@
  */
 
 /* global
-	cb, clearInterval, clearTimeout, console, customCode, dataOptions, document,
-	globalOptions, Highcharts, Image, options:true, chart:true, themeOptions,
-	phantom, require, window
+	cb, clearInterval, clearTimeout, console, customCode, dataOptions,
+	document:true, DOMParser, globalOptions, Highcharts, Image, options:true,
+	chart:true, themeOptions, phantom, require, window, XMLSerializer
 */
 /* exported
 	chart
@@ -247,7 +247,12 @@
 
 		function renderSVG(svg) {
 			var svgFile,
+				svgDoc,
 				interval,
+				cssStrings = svg.cssStrings,
+				cssString,
+				styleElement,
+				i,
 				timer;
 			// From this point we have 'loaded' or 'created' a SVG
 
@@ -265,6 +270,19 @@
 					svg = svg.html.replace(/<svg (?!xmlns:xlink)/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink" ').replace(/ href=/g, ' xlink:href=').replace(/<\/svg>.*?$/, '</svg>');
 					// add xml doc type
 					svg = SVG_DOCTYPE + svg;
+
+					// Re-add css link-elements
+					if (cssStrings && cssStrings.length) {
+						svgDoc = new DOMParser().parseFromString(svg, 'image/svg+xml');
+						for (i = 0; i < cssStrings.length; i++) {
+							cssString = cssStrings[i];
+							styleElement = svgDoc.createElementNS('http://www.w3.org/1999/xhtml', 'style');
+							styleElement.innerHTML = cssString;
+							svgDoc.getElementsByTagName('defs')[0].appendChild(styleElement);
+						}
+						svg = new XMLSerializer().serializeToString(svgDoc);
+					}
+
 
 					if (output !== undefined) {
 						// write the file
@@ -325,7 +343,8 @@
 					html: document.getElementsByClassName('highcharts-container')[0].innerHTML,
 					width: options.chart.width,
 					height: options.chart.height,
-					imgUrls: imgUrls
+					imgUrls: imgUrls,
+					cssStrings: document.cssStrings
 				};
 			});
 
@@ -541,11 +560,15 @@
 
 		/**
 		 * @param {String} css - the css content to be inserted in a style tag placed in body element
+		 * @param {Boolean} svg - whether or not the output type is svg
 		 * @returns {undefined}
 		 */
-		function appendStyleElement(css) {
-			var elem = document.createElement('style');
-			elem.type = 'text/css';
+		function appendStyleElement(css, svg) {
+			var elem;
+
+			if (document.cssStrings === undefined) {
+				document.cssStrings = [];
+			}
 
 			function insertCSSImports(css, head) {
 				var importRegex = /@import\s*('([^']*)'|url\(([^)]*)\));/g,
@@ -554,22 +577,34 @@
 					url,
 					link,
 					i;
-				for (i = 0; i < imports.length; i++) {
-					match = imports[i];
-					url = match.replace(importRegex, '$2$3');
-					url = url.replace(/'/g, '');
-					link = document.createElement('link');
-					link.rel = 'stylesheet';
-					link.type = 'text/css';
-					link.href = url;
-					head.appendChild(link);
+				if (imports && imports.length) {
+					for (i = 0; i < imports.length; i++) {
+						match = imports[i];
+						url = match.replace(importRegex, '$2$3');
+						url = url.replace(/'/g, '');
+						link = document.createElement('link');
+						link.rel = 'stylesheet';
+						link.type = 'text/css';
+						link.href = url;
+						head.appendChild(link);
+					}
 				}
 				return css.replace(importRegex, '');
 			}
-			css = insertCSSImports(css, document.head);
 
-			elem.innerHTML = css;
-			document.head.appendChild(elem);
+			if (svg) {
+				// If there are @imports, SVG can handle them
+				document.cssStrings.push(css);
+			} else {
+				// Extract and insert imports to head (PhantomJS does not
+				// support @imports).
+				css = insertCSSImports(css, document.head);
+				elem = document.createElement('style');
+				elem.type = 'text/css';
+				elem.innerHTML = css;
+				document.head.appendChild(elem);
+			}
+
 		}
 
 		/**
@@ -591,26 +626,31 @@
 		 * In ject or append files, content for javascript tags or style tags
 		 * @param {String} type - indicating the type of resource, of type: file, css or js
 		 * @param {String} resource - the content of the resource
+		 * @param {Boolean} svg - whether or not the output type is svg
 		 * @returns {undefined}
 		 */
-		function injectResource(type, resource) {
+		function injectResource(type, resource, svg) {
 			if (type === 'js') {
 				page.evaluate(appendScriptElement, resource);
 			}
 			// css or js file content is directly specfied on the property // instead of using filenames.
 			if (type === 'css') {
-				page.evaluate(appendStyleElement, resource);
+				page.evaluate(appendStyleElement, resource, svg);
 			}
 		}
 
-		/*
+		/**
 		 * Process a json file where resources are specified by key.
-		 * @param {Object} resources - an object with the folowing keys: files,js, css
+		 * @param {Object} resources - an object with the folowing keys: files,
+		 *                           js, css
+		 * @param {String} outType - the type of output, e.g. 'svg'
+		 * @returns {undefined}
 		 */
-		function injectResources(resources) {
+		function injectResources(resources, outType) {
 			var key,
 				fileName,
 				fileIdx,
+				svg = outType.toLowerCase() === 'svg',
 				extension;
 
 			for (key in resources) {
@@ -637,7 +677,7 @@
 
 							if (fs.exists(fileName) && extension === 'css') {
 								// for js or css placed between tags
-								injectResource('css', fs.read(fileName));
+								injectResource('css', fs.read(fileName), svg);
 							}
 						}
 					}
@@ -700,7 +740,9 @@
 		};
 
 		page.onResourceReceived = function (response) {
-			page.externalResources[response.url] = false; // false means not loading
+			if (response.stage === 'end') {
+				page.externalResources[response.url] = false; // false means not loading
+			}
 			console.log('Received ' + response.url, '(Response #' + response.id + ', stage "' + response.stage + '")');
 		};
 
@@ -801,7 +843,9 @@
 						}
 					}
 
-					injectResources(resources);
+					injectResources(resources, outType);
+
+					page.resources = resources;
 
 					// load chart in page and return svg height and width
 					page.evaluate(createChart, constr, input, themeOptions, globalOptions, dataOptions, customCode, outType, callback, messages);
