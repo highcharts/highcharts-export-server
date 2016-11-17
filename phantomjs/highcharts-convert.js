@@ -825,6 +825,7 @@
 							resources = JSON.parse(fs.read(resourcesFile));
 						} catch(err) {
 							console.log('Cannot parse the local resources file');
+							resources = {};
 						}
 					}
 
