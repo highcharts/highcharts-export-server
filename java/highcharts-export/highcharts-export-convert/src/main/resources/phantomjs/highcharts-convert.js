@@ -797,7 +797,7 @@
 					customCode = 'function customCode(options) {\n' + params.customcode + '}\n',
 					fileList,
 					resourcesFile = page.libraryPath + '/resources.json',
-					resources,
+					resources = {},
 					resourcesParam;
 
 				/* Decide if we have to generate a svg first before rendering */
@@ -822,10 +822,9 @@
 					// read the local resources file needed for chart creation
 					if (fs.exists(resourcesFile)) {
 						try {
-							resources = JSON.parse(fs.read(resourcesFile));
+							resources = extend(resources, JSON.parse(fs.read(resourcesFile)));
 						} catch(err) {
 							console.log('Cannot parse the local resources file');
-							resources = {};
 						}
 					}
 
@@ -843,6 +842,8 @@
 							resources = extend(resources, { files: fileList });
 						}
 					}
+
+					console.log(JSON.stringify(resources));
 
 					injectResources(resources, outType);
 
