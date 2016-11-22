@@ -12,7 +12,7 @@
 
 /* global
 	cb, clearInterval, clearTimeout, console, customCode, dataOptions,
-	document:true, DOMParser, globalOptions, Highcharts, Image, options:true,
+	document:true, DOMParser, globalOptions, Highcharts, options:true,
 	chart:true, themeOptions, phantom, require, window, XMLSerializer
 */
 /* exported
@@ -100,9 +100,7 @@
 			constr,
 			callback,
 			output,
-			outType,
-			counter,
-			imagesLoaded = false;
+			outType;
 
 		function exit(result, error) {
 			if (serverMode) {
@@ -200,10 +198,11 @@
 		function convert(svg) {
 			var interval,
 				timer,
+				timeoutMsg = 'Timeout reached while downloading external resources. Remaining resources: ',
 				resourcesLoaded = false,
 				resource;
 
-			// render with interval, waiting for all images loaded
+			// Render with interval, waiting for all resoures to be loaded
 			interval = window.setInterval(function () {
 				resourcesLoaded = true;
 				for (resource in page.externalResources) {
@@ -222,47 +221,26 @@
 
 			timer = window.setTimeout(function () {
 				clearInterval(interval);
-				exitError('Timeout reached while downloading external resources. Remaining resources: ' + JSON.stringify(page.externalResources));
+				for (resource in page.externalResources) {
+					if (page.externalResources.hasOwnProperty(resource) &&
+						page.externalResources[resource] === true) {
+						if (page.externalResources[resource] === true) {
+							timeoutMsg += '\n  - ' + resource;
+						}
+					}
+				}
+				exitError(timeoutMsg);
 			}, config.TIMEOUT);
-		}
-
-		function decrementImgCounter() {
-			counter -= 1;
-			if (counter < 1) {
-				imagesLoaded = true;
-			}
-		}
-
-		function loadImages(imgUrls) {
-			var i, img;
-			counter = imgUrls.length;
-			for (i = 0; i < imgUrls.length; i += 1) {
-				img = new Image();
-				/* onload decrements the counter, also when error (perhaps 404), don't wait for this image to be loaded */
-				img.onload = img.onerror = decrementImgCounter;
-				/* force loading of images by setting the src attr.*/
-				img.src = imgUrls[i];
-			}
 		}
 
 		function renderSVG(svg) {
 			var svgFile,
 				svgDoc,
-				interval,
 				cssStrings = svg.cssStrings,
 				cssString,
 				styleElement,
-				i,
-				timer;
+				i;
 			// From this point we have 'loaded' or 'created' a SVG
-
-			// Do we have to load images?
-			if (svg.imgUrls.length > 0) {
-				loadImages(svg.imgUrls);
-			} else {
-				// no images present, no loading, no waiting
-				imagesLoaded = true;
-			}
 
 			try {
 				if (outType.toLowerCase() === 'svg') {
@@ -300,50 +278,20 @@
 
 				} else {
 					// output binary images or pdf
-					if (!imagesLoaded) {
-						// render with interval, waiting for all images loaded
-						interval = window.setInterval(function () {
-							if (imagesLoaded) {
-								clearTimeout(timer);
-								clearInterval(interval);
-								convert(svg);
-							}
-						}, 50);
-
-						// we have a 5 second timeframe..
-						timer = window.setTimeout(function () {
-							clearInterval(interval);
-							exitError('While rendering, there\'s is a timeout reached');
-						}, config.TIMEOUT);
-					} else {
-						// images are loaded, render rightaway
-						convert(svg);
-					}
+					convert(svg);
 				}
 			} catch (e) {
 				exitError('While rendering, ' + e);
 			}
 		}
 
-		function renderSVGWithImages() {
+		function getSVG() {
 			var svg = page.evaluate(function () {
-				var imgs,
-					imgUrls,
-					imgIndex;
-
-				imgs = document.getElementsByTagName('image');
-
-				imgUrls = [];
-
-				for (imgIndex = 0; imgIndex < imgs.length; imgIndex = imgIndex + 1) {
-					imgUrls.push(imgs[imgIndex].href.baseVal);
-				}
 
 				return {
 					html: document.getElementsByClassName('highcharts-container')[0].innerHTML,
 					width: options.chart.width,
 					height: options.chart.height,
-					imgUrls: imgUrls,
 					cssStrings: document.cssStrings
 				};
 			});
@@ -712,7 +660,7 @@
 
 			// Listen for chart.load to be called before rendering SVG
 			if (msg === messages.chartLoadCalled) {
-				renderSVGWithImages();
+				getSVG();
 			}
 
 			/*
@@ -733,6 +681,7 @@
 		page.externalResources = {};
 
 		page.onResourceError = function (resourceError) {
+			page.externalResources[resourceError.url] = false; // false means not loading
 			console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')');
 			console.log('Error code: ' + resourceError.errorCode + '. Description: ' + resourceError.errorString);
 		};
@@ -925,9 +874,12 @@
 		startServer(args.host, args.port);
 	} else {
 		// presume commandline usage
-		render(args, function (msg) {
-			console.log(msg);
-			phantom.exit();
-		});
+		render(args,
+			function () {
+				phantom.exit();
+			},
+			function () {
+				phantom.exit();
+			});
 	}
 }());
