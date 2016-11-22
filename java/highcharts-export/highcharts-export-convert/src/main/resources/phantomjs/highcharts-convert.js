@@ -525,6 +525,9 @@
 			if (dataOptions) {
 				parseData(function completeHandler(opts) {
 					// Merge series configs
+					if (typeof opts !== 'object' || opts === undefined) {
+						opts = { series: [{}] };
+					}
 					if (options.series) {
 						Highcharts.each(options.series, function (series, i) {
 							options.series[i] = Highcharts.merge(series, opts.series[i]);
