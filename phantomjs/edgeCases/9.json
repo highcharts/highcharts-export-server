@@ -1,0 +1,9 @@
+{
+  "constr": "Chart",
+  "dataoptions": "{}",
+  "themeoptions": "{}",
+  "width": "600",
+  "options": "{\n  \"yAxis\": {\n    \"title\": {\n      \"text\": \"PPV (USD)\"\n    }\n  },\n  \"credits\": {\n    \"branded\": true,\n    \"text\": \"Highcharts\",\n    \"href\": \"//cloud.highcharts.com/\",\n    \"enabled\": true\n  },\n  \"series\": [\n    {\n      \"color\": \"#FF0000\",\n      \"index\": 0,\n      \"negativeColor\": \"#0088FF\"\n    },\n    {\n      \"color\": \"#000000\",\n      \"dashStyle\": \"ShortDash\",\n      \"marker\": {\n        \"symbol\": \"diamond\"\n      },\n      \"index\": 1,\n      \"type\": \"line\"\n    }\n  ],\n  \"title\": {\n    \"text\": \"PPV Over Time\"\n  },\n  \"chart\": {\n    \"type\": \"column\"\n  }\n}",
+  "type": "png",
+  "customcode": "null\n"
+}
