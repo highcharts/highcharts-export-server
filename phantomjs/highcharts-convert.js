@@ -103,6 +103,10 @@
 			outType;
 
 		function exit(result, error) {
+
+			// Flush map over external resources
+			page.externalResources = {};
+
 			if (serverMode) {
 				// Calling page.close(), may stop the increasing heap allocation
 				page.close();
