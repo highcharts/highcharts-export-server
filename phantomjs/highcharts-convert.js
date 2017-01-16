@@ -852,7 +852,7 @@
 			}); // end server.listen
 
 		if (listening !== true) {
-			console.log("Phantomjs failed to start (not listening)");
+			console.log("PhantomJS failed to start (not listening)");
 			phantom.exit(1);
 		}
 
