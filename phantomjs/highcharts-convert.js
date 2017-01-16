@@ -816,7 +816,7 @@
 		var server = require('webserver').create();
 
 
-		server.listen(host ? host + ':' + port : parseInt(port, 10),
+		var listening = server.listen(host ? host + ':' + port : parseInt(port, 10),
 			function (request, response) {
 				function onSuccess(msg) {
 					response.statusCode = 200;
@@ -850,6 +850,11 @@
 					onError('ERROR: Failed rendering chart');
 				}
 			}); // end server.listen
+
+		if (listening !== true) {
+			console.log("PhantomJS failed to start (not listening)");
+			phantom.exit(1);
+		}
 
 		// switch to serverMode
 		serverMode = true;
